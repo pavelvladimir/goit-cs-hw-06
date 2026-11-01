@@ -1,0 +1,63 @@
+{
+  "name": "hw06-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22.22.0 <23"
+  },
+  "scripts": {
+    "dev": "pnpm generate && pnpm build:styles && pnpm build:docs && next dev --hostname 127.0.0.1 --port 3001",
+    "build": "pnpm generate && pnpm build:styles && pnpm build:docs && next build && node scripts/finalize-export.mjs && tsc --noEmit && pnpm validate:html",
+    "validate:html": "html-validate \"out/**/*.html\"",
+    "lint": "eslint . --max-warnings 0 && prettier --check .",
+    "format": "prettier --write . && pnpm lint:fix",
+    "test": "playwright test",
+    "preinstall": "npx --yes only-allow@1.2.1 pnpm",
+    "generate": "openapi-ts",
+    "build:styles": "node scripts/build-styles.mjs",
+    "lint:docs": "cd .. && markdownlint-cli2",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "test:unit": "tsx --test tests/*.test.ts",
+    "preview": "uv run --directory .. --locked python -m scripts.preview_frontend",
+    "build:docs": "node scripts/build-docs.mjs"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "10.0.1",
+    "@hey-api/openapi-ts": "0.99.0",
+    "@playwright/test": "1.64.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.5",
+    "@types/pngjs": "6.0.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.12.0",
+    "eslint-config-next": "16.4.3",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-import-helpers": "2.0.2",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-playwright": "2.12.1",
+    "eslint-plugin-prettier": "5.5.6",
+    "eslint-plugin-sonarjs": "4.2.2",
+    "globals": "17.1.0",
+    "html-validate": "11.16.2",
+    "markdownlint-cli2": "0.24.0",
+    "pngjs": "7.0.0",
+    "postcss": "8.5.32",
+    "prettier": "3.9.10",
+    "swagger-ui-dist": "5.34.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3"
+  }
+}

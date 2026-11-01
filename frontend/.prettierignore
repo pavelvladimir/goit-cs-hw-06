@@ -1,0 +1,15 @@
+node_modules/
+AGENTS.md
+.next/
+out/
+next-env.d.ts
+pnpm-lock.yaml
+public/vendor/
+reference/
+*.tsbuildinfo
+public/style.css
+src/api/generated/
+tests/fixtures/
+test-results/
+playwright-report/
+openapi.json

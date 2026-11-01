@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Project: initialize local configuration",
+      "type": "process",
+      "command": "make",
+      "args": ["init"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: build static export",
+      "type": "process",
+      "command": "make",
+      "args": ["build-frontend"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project: lint",
+      "type": "process",
+      "command": "make",
+      "args": ["lint"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project: run all checks (Docker required)",
+      "type": "process",
+      "command": "make",
+      "args": ["check"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    }
+  ]
+}

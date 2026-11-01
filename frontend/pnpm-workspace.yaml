@@ -1,0 +1,25 @@
+# Hey API's parser pins an older js-yaml; use the fixes for GHSA-2883-xcg3-v3hh
+# and the related YAML CPU exhaustion advisories. Remove when upstream updates.
+overrides:
+  '@hey-api/json-schema-ref-parser>js-yaml': 4.3.2
+  # markdownlint pins re2js 2.8.6; GHSA-gg6h-894w-4m9c is fixed in 2.8.7.
+  'markdownlint>re2js': 2.8.7
+  # Markdown math renderer: GHSA-238p-pmpm-9mq7. Keep the renderToString API.
+  'micromark-extension-math>katex': 0.18.2
+
+# Native resolver binaries come from locked optional dependencies. Its fallback
+# installer would download packages outside pnpm; it is not needed here.
+allowBuilds:
+  '@scarf/scarf': false
+  unrs-resolver: false
+  esbuild: false
+  sharp: false
+
+# Next.js 16.4 supports ESLint 10 and adapts the React/import rule APIs.
+# These exact plugin versions still declare older peers; verified by our lint.
+# Remove each exception when upstream declares ESLint 10 support.
+peerDependencyRules:
+  allowedVersions:
+    'eslint-plugin-import@2.32.0>eslint': 10.12.0
+    'eslint-plugin-jsx-a11y@6.10.2>eslint': 10.12.0
+    'eslint-plugin-react@7.37.5>eslint': 10.12.0
