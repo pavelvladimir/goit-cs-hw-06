@@ -209,7 +209,18 @@ try {
                     self.run("exec", "-T", "mongodb", "rm", "-f", remote)
                 finally:
                     if running:
-                        self.run("start", "--wait", "--wait-timeout", "60", "app")
+                        # Older Compose v2 supports --wait on up, but not start.
+                        # Resume the existing app without changing its container.
+                        self.run(
+                            "up",
+                            "--no-recreate",
+                            "--no-build",
+                            "--no-deps",
+                            "--wait",
+                            "--wait-timeout",
+                            "60",
+                            "app",
+                        )
         except BaseException:
             if not completed:
                 shutil.rmtree(directory)

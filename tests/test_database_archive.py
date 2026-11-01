@@ -37,13 +37,9 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
         destination: BinaryIO | None = None,
     ) -> bytes:
         calls.append(args)
-        phase = {"stop": "stop", "start": "restart", "cat": "copy", "rm": "cleanup"}
+        phase = {"stop": "stop", "up": "restart", "cat": "copy", "rm": "cleanup"}
         operation = (
-            args[0]
-            if args[0] in {"stop", "start"}
-            else args[3]
-            if len(args) > 3
-            else ""
+            args[0] if args[0] in {"stop", "up"} else args[3] if len(args) > 3 else ""
         )
         if phase.get(operation) == failure:
             raise ArchiveError("simulated operation failure")
@@ -66,7 +62,7 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
             archive.backup(directory)
     else:
         archive.backup(directory)
-    assert any(args[0] == "start" for args in calls) == running
+    assert any(args[0] == "up" for args in calls) == running
     assert any(len(args) > 3 and args[3] == "rm" for args in calls)
     complete = not failed or failure in {"cleanup", "restart"}
     assert directory.exists() == complete

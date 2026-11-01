@@ -933,9 +933,11 @@ def test_backup_restores_exact_documents_into_a_new_database(
     archive = DatabaseArchive(stack.command, stack.environment)
     directory = tmp_path / "backup"
     before = stack.records()
+    app_container = stack.identity()[0]
     archive.backup(directory)
     stack.update_port()
     stack.wait_ready()
+    assert stack.identity()[0] == app_container
     assert directory.stat().st_mode & 0o777 == 0o700
     assert (directory / "archive.bson").stat().st_mode & 0o777 == 0o600
     target = "restore_" + uuid.uuid4().hex

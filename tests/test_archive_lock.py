@@ -77,7 +77,7 @@ def archive_worker(
         ) -> bytes:
             with trace.open("a") as output:
                 output.write(json.dumps(args) + "\n")
-            if (stage == "restart" and args[0] == "start") or (
+            if (stage == "restart" and args[0] == "up") or (
                 stage == "cleanup" and "rm" in args
             ):
                 pause()
@@ -228,7 +228,7 @@ def test_error_and_process_termination_release_without_deleting_lock(
                 json.loads(line)
                 for line in (tmp_path / "trace").read_text().splitlines()
             ]
-            assert calls[-1][0] == "start"
+            assert calls[-1][0] == "up"
             assert not (tmp_path / "first").exists()
 
 
