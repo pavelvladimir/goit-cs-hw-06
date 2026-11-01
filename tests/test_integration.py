@@ -6,6 +6,7 @@ import errno
 import json
 import os
 import secrets
+import select
 import socket
 import statistics
 import subprocess
@@ -17,7 +18,7 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from http.client import HTTPConnection
+from http.client import HTTPConnection, HTTPResponse
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -1008,24 +1009,37 @@ print(json.dumps({
         results = list(pool.map(measured_request, range(48)))
     assert all(status in (200, 503) for status, _ in results)
     assert any(status == 200 for status, _ in results)
-    held = []
+    held: list[socket.socket] = []
     try:
         opened = time.monotonic()
-        for _ in range(8):
-            connection = socket.create_connection(("127.0.0.1", stack.port), timeout=5)
-            held.append(connection)
-            connection.sendall(
-                b"POST /api/message HTTP/1.0\r\nContent-Length: 100\r\n"
-                b"Content-Type: application/x-www-form-urlencoded\r\n\r\nx"
-            )
-        # Confirm capacity over HTTP without eight sequential Docker log scans.
-        while True:
+        rejected: list[tuple[int, float]] = []
+        # A finishing warm-up request or Docker health check can take a slot.
+        # Replace rejected holders until eight stay open and eight probes get 503.
+        while len(rejected) < 8:
             remaining = opened + 3 - time.monotonic()
             assert remaining > 0, "HTTP capacity was not saturated in time"
-            if measured_request(0, timeout=remaining)[0] == 503:
-                break
-            time.sleep(0.02)
-        rejected = [measured_request(index, timeout=1) for index in range(8)]
+            while len(held) < 8:
+                connection = socket.create_connection(
+                    ("127.0.0.1", stack.port), timeout=min(1, remaining)
+                )
+                held.append(connection)
+                connection.sendall(
+                    b"POST /api/message HTTP/1.0\r\nContent-Length: 100\r\n"
+                    b"Content-Type: application/x-www-form-urlencoded\r\n\r\nx"
+                )
+            result = measured_request(0, timeout=min(1, remaining))
+            finished = select.select(held, [], [], 0)[0]
+            for connection in finished:
+                with HTTPResponse(connection) as response:
+                    response.begin()
+                    assert response.status == 503, "Held request ended unexpectedly"
+                held.remove(connection)
+                connection.close()
+            if result[0] == 503 and not finished:
+                rejected.append(result)
+            else:
+                rejected.clear()
+                time.sleep(0.02)
         assert time.monotonic() - opened < 4
         assert all(status == 503 for status, _ in rejected)
         saturated = sample()
