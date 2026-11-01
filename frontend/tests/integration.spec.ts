@@ -18,6 +18,8 @@ for (const { javaScriptEnabled, mode, lineEnding } of [
     await page.goto('/message')
     await page.getByLabel('Ваше ім’я').fill(username)
     await page.getByLabel('Повідомлення', { exact: true }).fill(message)
+    // Base UI sets this after hydration; the native form is usable before then.
+    await expect(page.locator('#message[data-filled]')).toHaveCount(Number(javaScriptEnabled))
     const submission = page.waitForRequest((request) => request.method() === 'POST')
     await page.getByRole('button', { name: 'Надіслати', exact: true }).click()
     const payload = new URLSearchParams((await submission).postData() ?? '')
