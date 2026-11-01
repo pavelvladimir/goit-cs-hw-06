@@ -1,0 +1,81 @@
+services:
+  app:
+    build: .
+    init: true
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_DATABASE: messages
+      MONGO_USER: messages_app
+      MONGO_PASSWORD_FILE: /run/secrets/mongo_password
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-2}
+      SHUTDOWN_GRACE_SECONDS: ${SHUTDOWN_GRACE_SECONDS:-20}
+      HTTP_MAX_CONNECTIONS: ${HTTP_MAX_CONNECTIONS:-32}
+      TCP_MAX_CONNECTIONS: ${TCP_MAX_CONNECTIONS:-32}
+      RECEIVE_TIMEOUT: ${RECEIVE_TIMEOUT:-5}
+    secrets:
+      - mongo_password
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    read_only: true
+    cpus: 1.0
+    mem_limit: 256m
+    pids_limit: 384
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Outlast the maximum configurable application drain (120 seconds).
+    stop_grace_period: 130s
+    healthcheck:
+      test:
+        - CMD
+        - /app/.venv/bin/python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/health', timeout=10).close()"
+      interval: 5s
+      timeout: 12s
+      retries: 5
+      start_period: 5s
+
+  mongodb:
+    image: percona/percona-server-mongodb:8.0.32-14@sha256:5ba5f240d2dc98bc6236ab1d79c0862c4b62dba9d98cd0ffdf716c30473d2d11
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_admin_password
+      MONGO_INITDB_DATABASE: messages
+      PERCONA_TELEMETRY_DISABLE: "1"
+    command: ["mongod", "--auth", "--bind_ip_all"]
+    secrets:
+      - mongo_admin_password
+      - mongo_password
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/init-mongo.js:/docker-entrypoint-initdb.d/10-app.js:ro
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --norc
+        - --eval
+        - >-
+          const appDb = db.getSiblingDB('messages');
+          appDb.auth('messages_app', require('fs').readFileSync('/run/secrets/mongo_password', 'utf8').replace(/[\r\n]+$/, ''));
+          quit(appDb.runCommand({find: 'messages', limit: 1}).ok === 1 ? 0 : 1);
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+secrets:
+  mongo_password:
+    file: ${MONGO_PASSWORD_PATH:-./secrets/mongo_password}
+  mongo_admin_password:
+    file: ${MONGO_ADMIN_PASSWORD_PATH:-./secrets/mongo_admin_password}
+
+volumes:
+  mongo_data:

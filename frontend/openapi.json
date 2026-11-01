@@ -1,0 +1,232 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GoIT Messages API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/message": {
+      "post": {
+        "operationId": "submitMessage",
+        "description": "Send Accept: application/json. Success follows a confirmed TCP/MongoDB write. No automatic retries.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Acknowledged write",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageSaved"
+                },
+                "example": {
+                  "status": "saved"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request failed",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidMessage"
+                },
+                "example": {
+                  "error": "invalid_message"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request failed",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageUnavailable"
+                },
+                "example": {
+                  "error": "storage_unavailable"
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Body timeout",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "411": {
+            "description": "Content-Length required",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "URL-encoded form required",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Native form without Accept: application/json; redirect to /message/sent"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "checkHealth",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "const": "ok\n"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "const": "unavailable\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MessageInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "message"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Trimmed, nonblank; no NUL characters"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Nonblank; no NUL characters; original whitespace preserved"
+          }
+        }
+      },
+      "MessageSaved": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "saved"
+          }
+        }
+      },
+      "InvalidMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "const": "invalid_message"
+          }
+        }
+      },
+      "StorageUnavailable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "const": "storage_unavailable"
+          }
+        }
+      }
+    }
+  }
+}

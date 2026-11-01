@@ -1,0 +1,15 @@
+{
+  "config": {
+    "default": true,
+    "MD013": {
+      "line_length": 120,
+      // Commands, log samples and tables should remain easy to copy.
+      "code_blocks": false,
+      "tables": false,
+    },
+  },
+  "globs": ["**/*.{md,markdown}"],
+  "gitignore": ".gitignore",
+  // Next.js owns and regenerates this file; it is not project documentation.
+  "ignores": ["frontend/AGENTS.md"],
+}

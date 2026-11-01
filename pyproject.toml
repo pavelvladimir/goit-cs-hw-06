@@ -1,0 +1,50 @@
+[project]
+name = "goit-cs-hw-06"
+version = "0.1.0"
+description = "HTTP and TCP servers with MongoDB for the GoIT final assignment"
+requires-python = ">=3.13,<3.14"
+dependencies = ["pymongo>=4.15,<5", "python-dotenv>=1.2.4,<2"]
+
+[dependency-groups]
+dev = [
+    "coverage[toml]>=7.10,<8",
+    "mypy>=1.18,<3",
+    "pip-audit>=2.10.1,<3",
+    "pytest>=8.4,<10",
+    "ruff>=0.14,<1",
+]
+
+[tool.uv]
+package = false
+prerelease = "disallow"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["main.py", "scripts", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
+markers = ["integration: real application and MongoDB in an isolated Compose project"]
+
+[tool.coverage.run]
+branch = true
+source = ["main", "scripts"]
+omit = ["scripts/preview_frontend.py"]
+# Preview is only a test server; production supervision is included.
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+precision = 2
+exclude_also = ['if __name__ == "__main__":']

@@ -1,0 +1,71 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    # MongoDB 8.0.32 rejects the 24.04 runner's new 7.0.0-azure kernel.
+    # Return to 24.04 after the pinned image includes SERVER-131779.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.0"
+          enable-cache: true
+      - name: Show runner and Docker versions
+        run: |
+          uname -r
+          docker version
+          docker compose version
+      - name: Install locked dependencies and browsers
+        run: |
+          npm install --global pnpm@12.11.2
+          make sync
+          pnpm --dir frontend exec playwright install --with-deps chromium firefox webkit
+      - name: Verify application, browsers, backup and failure scenarios
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          make check 2>&1 | tee artifacts/linux-check.log
+      - name: Show container diagnostics on failure
+        if: failure()
+        run: |
+          if [ -f artifacts/integration-containers.log ]; then
+            tail -n 80 artifacts/integration-containers.log
+          fi
+      - name: Preserve verification reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-verification
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            artifacts/*.log
+            artifacts/load-report.json
+            artifacts/write-load-report.json
+            coverage.xml
+            htmlcov/
+            frontend/playwright-report/
