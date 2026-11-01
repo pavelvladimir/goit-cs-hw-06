@@ -22,7 +22,7 @@ Python-тести, Playwright та Docker-тести. Поріг coverage — 90
 Браузерні тести охоплюють клавіатуру, axe, вигляд сторінок та надсилання форми
 з JavaScript і без нього.
 
-## Останні перевірки
+## Останні локальні перевірки
 
 | Перевірка | Результат |
 | --- | --- |
@@ -61,8 +61,14 @@ Python-тести, Playwright та Docker-тести. Поріг coverage — 90
 `make check-linux` запускає локальні тести й три браузери в окремому Linux-контейнері.
 Повний Linux-прогін проходив до змін request ID та POST benchmark;
 після блокування backup/restore окремо пройдено 57 відповідних тестів.
-Workflow GitHub Actions підготовлений і перевірений `actionlint`, але на GitHub ще не запускався.
-Windows, AMD64 і тривалі навантаження не перевірялися.
+
+[GitHub Actions](https://github.com/pavelvladimir/goit-cs-hw-06/actions/workflows/check.yml)
+запускає повний `make check` на Linux AMD64. Тимчасово використовується Ubuntu 22.04:
+після оновлення ядра runner Ubuntu 24.04 MongoDB 8.0.32 завершується ще до запуску тестів.
+Повернення на 24.04 — після виходу Percona-образу з виправленням
+[SERVER-131779](https://jira.mongodb.org/browse/SERVER-131779).
+Версії ядра й Docker видно в логах; у разі помилки туди потрапляють і логи контейнерів.
+Windows і тривалі навантаження не перевірялися.
 
 Аудит Python від 01.11.2026 і npm runtime від 31.10.2026 не знайшов відомих вразливостей.
 Повний npm audit залишає одну moderate у dev-залежності minimatch:
