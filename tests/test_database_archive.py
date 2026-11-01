@@ -1,6 +1,8 @@
 """Backup failure paths must preserve files, application state and credentials."""
 
+import fcntl
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -20,7 +22,19 @@ def isolated_archive_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.parametrize("running", [True, False])
 @pytest.mark.parametrize(
-    "failure", ["none", "stop", "dump", "copy", "cleanup", "restart"]
+    "failure",
+    [
+        "none",
+        "stop",
+        "dump",
+        "copy",
+        "cleanup",
+        "restart",
+        "archive.bson",
+        "manifest.json",
+        "backup",
+        "parent",
+    ],
 )
 def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
     tmp_path: Path,
@@ -30,6 +44,14 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
 ) -> None:
     archive = DatabaseArchive(["docker", "compose", "-p", "archive-test"], {})
     calls: list[tuple[str, ...]] = []
+    synced: list[Path] = []
+    original_sync = module.fsync_path
+
+    def sync(path: Path) -> None:
+        synced.append(path)
+        if path.name == failure or (path == tmp_path and failure == "parent"):
+            raise OSError("sync failed")
+        original_sync(path)
 
     def run(
         *args: str,
@@ -48,6 +70,7 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
         return b"container" if args[0] == "ps" and running else b""
 
     monkeypatch.setattr(archive, "run", run)
+    monkeypatch.setattr(module, "fsync_path", sync)
     monkeypatch.setattr(
         archive,
         "tool",
@@ -58,7 +81,7 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
     directory = tmp_path / "backup"
     failed = failure not in {"none"} and (running or failure not in {"stop", "restart"})
     if failed:
-        with pytest.raises(ArchiveError):
+        with pytest.raises((ArchiveError, OSError)):
             archive.backup(directory)
     else:
         archive.backup(directory)
@@ -67,10 +90,42 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
     complete = not failed or failure in {"cleanup", "restart"}
     assert directory.exists() == complete
     if complete:
+        assert synced == [
+            directory / "archive.bson",
+            directory / "manifest.json",
+            directory,
+            tmp_path,
+        ]
         assert directory.stat().st_mode & 0o777 == 0o700
         assert (directory / "archive.bson").stat().st_mode & 0o777 == 0o600
         manifest = json.loads((directory / "manifest.json").read_text())
         assert manifest["sha256"] == checksum(directory / "archive.bson")
+
+
+@pytest.mark.parametrize("full_sync", [False, True])
+def test_sync_failure_propagates_and_closes_descriptor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, full_sync: bool
+) -> None:
+    path = tmp_path / "archive.bson"
+    path.write_bytes(b"backup")
+    descriptors: list[int] = []
+
+    def fail(descriptor: int, command: int | None = None) -> None:
+        descriptors.append(descriptor)
+        raise OSError("sync failed")
+
+    if full_sync:
+        monkeypatch.setattr(fcntl, "F_FULLFSYNC", 51, raising=False)
+        monkeypatch.setattr(fcntl, "fcntl", fail)
+    else:
+        monkeypatch.delattr(fcntl, "F_FULLFSYNC", raising=False)
+        monkeypatch.setattr(os, "fsync", fail)
+    with pytest.raises(OSError, match="sync failed"):
+        module.fsync_path(path)
+    assert len(descriptors) == 1
+    with pytest.raises(OSError):
+        os.fstat(descriptors[0])
+    assert path.read_bytes() == b"backup"
 
 
 def test_existing_backup_is_never_replaced(tmp_path: Path) -> None:

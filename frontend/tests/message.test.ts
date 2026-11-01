@@ -51,6 +51,9 @@ for (const [status, data] of [
   [201, null],
   [201, 'saved'],
   [201, {}],
+  [201, { status: 'saved', extra: true }],
+  [400, { error: 'invalid_message', extra: true }],
+  [503, { error: 'storage_unavailable', extra: true }],
   [400, { error: 'storage_unavailable' }],
   [500, { error: 'database secret' }],
 ] as const) {

@@ -1,5 +1,6 @@
 """Bootstrap must never replace configuration or existing database credentials."""
 
+import os
 import re
 import shutil
 import stat
@@ -9,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts import init_local as module
 from scripts.init_local import SECRET_PATHS, InitError, initialize
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +38,49 @@ def snapshot(directory: Path) -> dict[str, tuple[bytes, int, int, int]]:
         for path in directory.rglob("*")
         if path.is_file()
     }
+
+
+@pytest.mark.parametrize("failure", ["none", "file", "directory"])
+def test_create_file_sync_failure_never_publishes_partial_or_replaces_content(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    path = tmp_path / "password"
+    descriptors: list[int] = []
+    synced: list[str] = []
+    original_sync = os.fsync
+
+    def sync(descriptor: int) -> None:
+        info = os.fstat(descriptor)
+        phase = "directory" if stat.S_ISDIR(info.st_mode) else "file"
+        descriptors.append(descriptor)
+        synced.append(phase)
+        assert path.exists() == (phase == "directory")
+        if phase == "file":
+            assert os.pread(descriptor, 64, 0) == b"test-password\n"
+            assert stat.S_IMODE(info.st_mode) == 0o444
+        else:
+            assert path.read_bytes() == b"test-password\n"
+        if phase == failure:
+            raise OSError("sync failed")
+        original_sync(descriptor)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "fsync", sync)
+        if failure == "none":
+            assert module.create_file(path, "test-password\n", 0o444)
+        else:
+            with pytest.raises(OSError, match="sync failed"):
+                module.create_file(path, "test-password\n", 0o444)
+    assert synced == (["file"] if failure == "file" else ["file", "directory"])
+    for descriptor in descriptors:
+        with pytest.raises(OSError):
+            os.fstat(descriptor)
+    assert not list(tmp_path.glob(".init-*"))
+    assert path.exists() == (failure != "file")
+    if path.exists():
+        before = snapshot(tmp_path)
+        assert not module.create_file(path, "replacement\n", 0o444)
+        assert snapshot(tmp_path) == before
 
 
 def test_fresh_init_creates_private_configuration_and_random_passwords(

@@ -75,11 +75,17 @@ def create_file(path: Path, content: str, mode: int) -> bool:
         temporary.write(content)
         temporary.flush()
         os.fchmod(temporary.fileno(), mode)
+        os.fsync(temporary.fileno())
         try:
             os.link(temporary.name, path)
         except FileExistsError:
             check_file(path, mode)
             return False
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
     return True
 
 

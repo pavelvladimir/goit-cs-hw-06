@@ -1,5 +1,11 @@
+import { z } from 'zod'
+
 import { submitMessage } from './generated/sdk.gen'
 import { zInvalidMessage, zMessageSaved, zStorageUnavailable } from './generated/zod.gen'
+
+const strictSaved = z.strictObject(zMessageSaved.shape)
+const strictInvalid = z.strictObject(zInvalidMessage.shape)
+const strictUnavailable = z.strictObject(zStorageUnavailable.shape)
 
 const REQUEST_TIMEOUT_MS = 10_000
 const CREATED = 201
@@ -38,10 +44,9 @@ export async function sendMessage(form: FormData, request: typeof fetch = fetch)
   if (!response || response.headers.get('Content-Type')?.split(';').shift()?.trim() !== 'application/json') {
     throw new Error('Unexpected response content type')
   }
-  if (response.status === CREATED && zMessageSaved.strict().safeParse(data).success) return
-  if (response.status === INVALID && zInvalidMessage.strict().safeParse(error).success)
-    throw new MessageError('invalid_message')
-  if (response.status === UNAVAILABLE && zStorageUnavailable.strict().safeParse(error).success)
+  if (response.status === CREATED && strictSaved.safeParse(data).success) return
+  if (response.status === INVALID && strictInvalid.safeParse(error).success) throw new MessageError('invalid_message')
+  if (response.status === UNAVAILABLE && strictUnavailable.safeParse(error).success)
     throw new MessageError('storage_unavailable')
   throw new Error('Unexpected response status or payload')
 }

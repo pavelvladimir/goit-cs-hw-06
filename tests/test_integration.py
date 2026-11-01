@@ -43,7 +43,7 @@ class Stack:
             value = value.replace(password, "[REDACTED]")
         return value
 
-    def compose(self, *args: str, timeout: int = 180) -> str:
+    def compose(self, *args: str, timeout: float = 180) -> str:
         result = subprocess.run(
             [*self.command, *args],
             env=self.environment,
@@ -486,18 +486,32 @@ def test_react_json_contract_and_static_export(stack: Stack) -> None:
     assert "'sha256-" in headers["Content-Security-Policy"]
 
 
-def app_logs(stack: Stack) -> list[dict[str, Any]]:
-    text = stack.compose("logs", "--no-color", "--no-log-prefix", "app")
+def app_logs(
+    stack: Stack, *, since: str | None = None, timeout: float = 180
+) -> list[dict[str, Any]]:
+    window = ("--since", since) if since else ()
+    text = stack.compose(
+        "logs", "--no-color", "--no-log-prefix", *window, "app", timeout=timeout
+    )
     return [json.loads(line) for line in text.splitlines() if line.startswith("{")]
 
 
-def wait_log(stack: Stack, message: str, request_id: str | None = None) -> None:
-    deadline = time.monotonic() + 8
+def wait_log(
+    stack: Stack,
+    message: str,
+    request_id: str | None = None,
+    *,
+    since: str | None = None,
+    deadline: float | None = None,
+) -> None:
+    if deadline is None:
+        deadline = time.monotonic() + 8
     while time.monotonic() < deadline:
+        remaining = max(0.01, deadline - time.monotonic())
         if any(
             record["message"] == message
             and (request_id is None or record.get("request_id") == request_id)
-            for record in app_logs(stack)
+            for record in app_logs(stack, since=since, timeout=remaining)
         ):
             return
         time.sleep(0.1)
@@ -669,6 +683,7 @@ def test_sigterm_drains_an_inflight_post_before_stopping_tcp(stack: Stack) -> No
     container = stack.compose("ps", "-q", "app")
     assert container
     log_offset = len(app_logs(stack))
+    since = datetime.now(UTC).isoformat()
     with socket.create_connection(("127.0.0.1", stack.port), timeout=15) as connection:
         headers = (
             f"POST /api/message HTTP/1.0\r\nContent-Length: {len(body)}\r\n"
@@ -676,13 +691,16 @@ def test_sigterm_drains_an_inflight_post_before_stopping_tcp(stack: Stack) -> No
             "Accept: application/json\r\n"
             f"X-Request-ID: {request_id}\r\n\r\n"
         ).encode()
+        # Leave one second for completing the body within RECEIVE_TIMEOUT=5.
+        receive_deadline = time.monotonic() + 4
         connection.sendall(headers + body[:1])
-        wait_log(stack, "request_started", request_id)
-        # A unique marker is needed because earlier tests also stopped the app.
-        before = sum(
-            record["message"] == "shutdown_started" for record in app_logs(stack)
+        wait_log(
+            stack,
+            "request_started",
+            request_id,
+            since=since,
+            deadline=receive_deadline,
         )
-        since = datetime.now(UTC).isoformat()
         started = time.monotonic()
         with subprocess.Popen(
             [*stack.command, "stop", "app"],
@@ -691,18 +709,13 @@ def test_sigterm_drains_an_inflight_post_before_stopping_tcp(stack: Stack) -> No
             stderr=subprocess.PIPE,
         ) as process:
             try:
-                deadline = time.monotonic() + 5
-                while (
-                    sum(
-                        record["message"] == "shutdown_started"
-                        for record in app_logs(stack)
-                    )
-                    <= before
-                ):
-                    assert time.monotonic() < deadline, (
-                        "Supervisor did not receive SIGTERM"
-                    )
-                    time.sleep(0.1)
+                wait_log(
+                    stack,
+                    "shutdown_started",
+                    since=since,
+                    deadline=receive_deadline,
+                )
+                assert time.monotonic() < receive_deadline
                 connection.sendall(body[1:])
                 response = HTTPResponse(connection)
                 response.begin()
@@ -985,9 +998,9 @@ print(json.dumps({
         )
         return result
 
-    def measured_request(_: int) -> tuple[int, float]:
+    def measured_request(_: int, *, timeout: float = 12) -> tuple[int, float]:
         started = time.monotonic()
-        status = stack.request("/health")[0]
+        status = stack.request("/health", timeout=timeout)[0]
         return status, (time.monotonic() - started) * 1000
 
     baseline = sample()
@@ -997,21 +1010,26 @@ print(json.dumps({
     assert any(status == 200 for status, _ in results)
     held = []
     try:
+        opened = time.monotonic()
         for _ in range(8):
-            request_id = str(uuid.uuid4())
             connection = socket.create_connection(("127.0.0.1", stack.port), timeout=5)
             held.append(connection)
             connection.sendall(
-                (
-                    "POST /api/message HTTP/1.0\r\nContent-Length: 100\r\n"
-                    "Content-Type: application/x-www-form-urlencoded\r\n"
-                    f"X-Request-ID: {request_id}\r\n\r\nx"
-                ).encode()
+                b"POST /api/message HTTP/1.0\r\nContent-Length: 100\r\n"
+                b"Content-Type: application/x-www-form-urlencoded\r\n\r\nx"
             )
-            wait_log(stack, "request_started", request_id)
-        saturated = sample()
-        rejected = [measured_request(index) for index in range(8)]
+        # Confirm capacity over HTTP without eight sequential Docker log scans.
+        while True:
+            remaining = opened + 3 - time.monotonic()
+            assert remaining > 0, "HTTP capacity was not saturated in time"
+            if measured_request(0, timeout=remaining)[0] == 503:
+                break
+            time.sleep(0.02)
+        rejected = [measured_request(index, timeout=1) for index in range(8)]
+        assert time.monotonic() - opened < 4
         assert all(status == 503 for status, _ in rejected)
+        saturated = sample()
+        assert time.monotonic() - opened < 5
         assert max(duration for _, duration in rejected) < 1000
         assert saturated["tasks"] - baseline["tasks"] <= 12
         assert saturated["memory_bytes"] < 256 * 1024 * 1024

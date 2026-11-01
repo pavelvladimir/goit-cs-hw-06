@@ -203,6 +203,8 @@ try {
                 metadata = directory / "manifest.json"
                 metadata.write_text(json.dumps(manifest, indent=2) + "\n")
                 metadata.chmod(0o600)
+                for durable in (archive, metadata, directory, directory.parent):
+                    fsync_path(durable)
                 completed = True
             finally:
                 try:
@@ -264,6 +266,18 @@ try {
             self.tool(remote, database)
         finally:
             self.run("exec", "-T", "mongodb", "rm", "-f", remote)
+
+
+def fsync_path(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+        # macOS fsync alone does not flush the drive's write cache.
+        full_sync = getattr(fcntl, "F_FULLFSYNC", None)
+        if full_sync is not None:
+            fcntl.fcntl(descriptor, full_sync)
+    finally:
+        os.close(descriptor)
 
 
 def checksum(path: Path) -> str:
