@@ -67,6 +67,14 @@ def read_password(path: Path) -> str:
     return value
 
 
+def sync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def create_file(path: Path, content: str, mode: int) -> bool:
     """Publish a fully written file atomically; a concurrent init cannot clobber it."""
     with tempfile.NamedTemporaryFile(
@@ -76,28 +84,28 @@ def create_file(path: Path, content: str, mode: int) -> bool:
         temporary.flush()
         os.fchmod(temporary.fileno(), mode)
         os.fsync(temporary.fileno())
+        created = True
         try:
             os.link(temporary.name, path)
         except FileExistsError:
             check_file(path, mode)
-            return False
-        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-    return True
+            created = False
+        # A concurrent initializer may have published the name before its sync failed.
+        sync_directory(path.parent)
+    return created
 
 
 def initialize(directory: Path) -> list[Path]:
     env_file = directory / ".env"
     env_exists = check_file(env_file, 0o600)
+    if env_exists:
+        sync_directory(env_file.parent)
     env_content = read_text(env_file if env_exists else directory / ".env.example")
     # Parse quoted values/comments without executing shell code. Compose supports
     # more interpolation forms than dotenv; require literal secret-file paths.
     values = dotenv_values(stream=StringIO(env_content), interpolate=False)
     paths = []
-    passwords = []
+    passwords: list[str | None] = []
     for key, default in SECRET_PATHS.items():
         value = os.environ.get(key, values.get(key)) or default
         if "$" in value or "\n" in value or "\r" in value or "\x00" in value:
@@ -105,7 +113,11 @@ def initialize(directory: Path) -> list[Path]:
         path = directory / value
         check_secret_parents(path, directory)
         check_directory(path.parent)
-        passwords.append(read_password(path) if check_file(path, 0o444) else None)
+        if check_file(path, 0o444):
+            sync_directory(path.parent)
+            passwords.append(read_password(path))
+        else:
+            passwords.append(None)
         paths.append(path)
     if paths[0].resolve() == paths[1].resolve():
         raise InitError(

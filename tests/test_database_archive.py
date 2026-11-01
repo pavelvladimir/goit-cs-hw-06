@@ -34,6 +34,7 @@ def isolated_archive_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
         "manifest.json",
         "backup",
         "parent",
+        "project",
     ],
 )
 def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
@@ -46,10 +47,16 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
     calls: list[tuple[str, ...]] = []
     synced: list[Path] = []
     original_sync = module.fsync_path
+    backup_root = tmp_path / "backups"
+    backup_root.mkdir(mode=0o700)
 
     def sync(path: Path) -> None:
         synced.append(path)
-        if path.name == failure or (path == tmp_path and failure == "parent"):
+        if (
+            path.name == failure
+            or (path == backup_root and failure == "parent")
+            or (path == tmp_path and failure == "project")
+        ):
             raise OSError("sync failed")
         original_sync(path)
 
@@ -78,7 +85,7 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
             side_effect=ArchiveError("dump failed") if failure == "dump" else None
         ),
     )
-    directory = tmp_path / "backup"
+    directory = backup_root / "backup"
     failed = failure not in {"none"} and (running or failure not in {"stop", "restart"})
     if failed:
         with pytest.raises((ArchiveError, OSError)):
@@ -89,11 +96,13 @@ def test_backup_restores_prior_app_state_and_never_leaves_partial_backup(
     assert any(len(args) > 3 and args[3] == "rm" for args in calls)
     complete = not failed or failure in {"cleanup", "restart"}
     assert directory.exists() == complete
+    assert backup_root.is_dir()
     if complete:
         assert synced == [
             directory / "archive.bson",
             directory / "manifest.json",
             directory,
+            backup_root,
             tmp_path,
         ]
         assert directory.stat().st_mode & 0o777 == 0o700

@@ -19,7 +19,7 @@
     "build:styles": "node scripts/build-styles.mjs",
     "lint:docs": "cd .. && markdownlint-cli2",
     "lint:fix": "eslint . --fix --max-warnings 0",
-    "test:unit": "tsx --test tests/*.test.ts",
+    "test:unit": "pnpm generate && tsx --test tests/*.test.ts",
     "preview": "uv run --directory .. --locked python -m scripts.preview_frontend",
     "build:docs": "node scripts/build-docs.mjs"
   },

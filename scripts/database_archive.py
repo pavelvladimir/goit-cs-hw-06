@@ -203,7 +203,8 @@ try {
                 metadata = directory / "manifest.json"
                 metadata.write_text(json.dumps(manifest, indent=2) + "\n")
                 metadata.chmod(0o600)
-                for durable in (archive, metadata, directory, directory.parent):
+                # make backup may have just created backups/ in the project root.
+                for durable in (archive, metadata, directory, *directory.parents[:2]):
                     fsync_path(durable)
                 completed = True
             finally:

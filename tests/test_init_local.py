@@ -79,8 +79,57 @@ def test_create_file_sync_failure_never_publishes_partial_or_replaces_content(
     assert path.exists() == (failure != "file")
     if path.exists():
         before = snapshot(tmp_path)
+        # Retrying publication must also retry the directory sync on FileExistsError.
+        with monkeypatch.context() as patch:
+
+            def fail_sync(directory: Path) -> None:
+                assert directory == path.parent
+                raise OSError("retry sync failed")
+
+            patch.setattr(module, "sync_directory", fail_sync)
+            with pytest.raises(OSError, match="retry sync failed"):
+                module.create_file(path, "replacement\n", 0o444)
         assert not module.create_file(path, "replacement\n", 0o444)
         assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("target", [".env", *SECRET_PATHS.values()])
+def test_initialize_retries_failed_directory_sync_without_replacing_published_files(
+    project: Path, monkeypatch: pytest.MonkeyPatch, target: str
+) -> None:
+    path = project / target
+    original_sync = module.sync_directory
+    failures: list[Path] = []
+
+    def fail_sync(directory: Path) -> None:
+        if directory == path.parent and path.exists():
+            failures.append(directory)
+            raise OSError("directory sync failed")
+        original_sync(directory)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(module, "sync_directory", fail_sync)
+        with pytest.raises(OSError, match="directory sync failed"):
+            initialize(project)
+        before = snapshot(project)
+        assert path.is_file()
+        with pytest.raises(OSError, match="directory sync failed"):
+            initialize(project)
+        assert failures == [path.parent, path.parent]
+        assert snapshot(project) == before
+
+    synced: list[Path] = []
+
+    def sync(directory: Path) -> None:
+        synced.append(directory)
+        original_sync(directory)
+
+    monkeypatch.setattr(module, "sync_directory", sync)
+    initialize(project)
+    assert path.parent in synced
+    after = snapshot(project)
+    assert {key: after[key] for key in before} == before
+    assert initialize(project) == []
 
 
 def test_fresh_init_creates_private_configuration_and_random_passwords(
