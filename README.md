@@ -75,6 +75,9 @@ make check
 Docker-тести створюють окрему базу й прибирають її після завершення.
 Робочі повідомлення вони не використовують. Решту команд показує `make help`.
 
+`make audit-image` окремо збирає й перевіряє кінцевий Docker-образ через Trivy,
+зберігає SBOM і звіт у `artifacts/image-audit/`. [Деталі та винятки](docs/image-audit.md).
+
 ## Документація
 
 - [Як працюють сервери та TCP-протокол](docs/architecture.md)
@@ -82,4 +85,5 @@ Docker-тести створюють окрему базу й прибирают
 - [Налаштування та робота з даними](docs/operations.md)
 - [Збої, навантаження і резервні копії](docs/resilience.md)
 - [Результати тестів](docs/verification.md)
+- [Аудит Docker-образу та SBOM](docs/image-audit.md)
 - [Використані матеріали](docs/sources.md)

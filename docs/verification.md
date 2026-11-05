@@ -74,7 +74,8 @@ Windows і тривалі навантаження не перевірялися
 Повний npm audit залишає одну moderate у dev-залежності minimatch:
 [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 Цей аудит повертає помилку й виконується окремо через `make audit-frontend`.
-`make audit` перевіряє Python. Системні пакети образів цими командами не охоплені.
+`make audit` перевіряє Python. Системні пакети кінцевого Distroless-образу та його
+SBOM тепер перевіряє окремий `make audit-image`. [Команди й результат](image-audit.md).
 
 ## Де результати
 

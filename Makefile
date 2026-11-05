@@ -88,6 +88,11 @@ audit: ## Перевірити всі Python-залежності (потріб�
 	uv export --locked --all-groups --no-emit-project --format requirements-txt -o artifacts/audit-requirements.txt --quiet
 	uv run --locked pip-audit --cache-dir .cache/pip-audit --require-hashes --disable-pip --progress-spinner off -r artifacts/audit-requirements.txt
 
+.PHONY: audit-image
+
+audit-image: ## Зібрати кінцевий образ, перевірити CVE та зберегти SBOM і звіт
+	uv run --locked python -m scripts.audit_image
+
 .PHONY: sync-python check-unit lint-docs test-client install-browsers generate-api generate-client check-api lint-python format test-all coverage-report
 
 test-all: test test-client test-frontend test-integration ## Усі локальні, браузерні та інтеграційні тести
