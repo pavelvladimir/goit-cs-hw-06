@@ -23,6 +23,7 @@
 !scripts/export_openapi.py
 !frontend/openapi.json
 !frontend/openapi-ts.config.ts
+!frontend/published-assets.json
 frontend/src/api/generated/
 frontend/public/style.css
 frontend/public/vendor/

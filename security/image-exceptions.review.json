@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-05",
+  "inputs_sha256": {
+    ".dockerignore": "ba67c5ca8fb47e6ff6b95d801d8239864d0f1b4c728337b84c8f3e870deb88cb",
+    ".python-version": "02e735b3dfe1c32833eb550b7ff8ffa17f5f2bc3fa1e7bae61a8f5a3883ce398",
+    "Dockerfile": "4edebaa12ef280a295b9076807acbd04e97d5371741028ee686805b95b66daf2",
+    "docker-compose.yaml": "7d2eb479f18351410b91055ed068c2c7ee485085455bd7f0ae49ef4f440f3197",
+    "main.py": "f076967b5d26f655f48f48239d2c4c2bed218d58fa81b8a7d8f3a2989b47d28e",
+    "pyproject.toml": "92fba67d8b72e198ca2cd89a44123fc3f6a20dfb82316943bf897bea2c7b53ea",
+    "scripts/__init__.py": "a8a86296139d47a55d0257865e50e40c58e6c3eda0743f80e16a7f140cf7e9ce",
+    "scripts/export_openapi.py": "2b130331c51b83099b20212fc504e3e350125d833e2c36f9b4442524d85e5097",
+    "uv.lock": "b127070b359c12634f659071507931614d5958aefa0f2d4fc32e31873baea65c"
+  }
+}

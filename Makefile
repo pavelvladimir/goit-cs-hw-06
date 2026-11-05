@@ -4,6 +4,7 @@
 export BACKUP_DIR ?= backups/manual
 export RESTORE_DATABASE ?= restore_manual
 export WRITE_LOAD_SECONDS ?= 10
+export BASELINE ?=
 export UV_CACHE_DIR ?= $(CURDIR)/.cache/uv
 export NEXT_TELEMETRY_DISABLED := 1
 .PHONY: help init sync sync-frontend build-frontend dev-frontend lint-frontend test-frontend audit-frontend up down logs check lint typecheck test test-integration coverage audit export-requirements
@@ -87,6 +88,20 @@ audit: ## Перевірити всі Python-залежності (потріб�
 	@mkdir -p artifacts
 	uv export --locked --all-groups --no-emit-project --format requirements-txt -o artifacts/audit-requirements.txt --quiet
 	uv run --locked pip-audit --cache-dir .cache/pip-audit --require-hashes --disable-pip --progress-spinner off -r artifacts/audit-requirements.txt
+
+.PHONY: audit-image audit-python-sbom audit-frontend-sbom audit-all
+
+audit-image: ## Зібрати кінцевий образ, перевірити CVE та зберегти SBOM і звіт
+	uv run --locked python -m scripts.audit_image
+
+audit-python-sbom: ## SBOM і CVE для Python runtime та всіх залежностей uv.lock
+	uv run --locked python -m scripts.audit_dependencies --target python
+
+audit-frontend-sbom: ## SBOM, CVE та перевірка опублікованих frontend-файлів
+	uv run --locked python -m scripts.audit_dependencies --target frontend
+
+audit-all: ## Усі SBOM, образ, pip-audit і pnpm audit; BASELINE задає попередній звіт
+	uv run --locked python -m scripts.audit_dependencies --target all $${BASELINE:+--baseline "$$BASELINE"}
 
 .PHONY: sync-python check-unit lint-docs test-client install-browsers generate-api generate-client check-api lint-python format test-all coverage-report
 
