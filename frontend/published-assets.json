@@ -1,0 +1,7 @@
+[
+  {
+    "package": "swagger-ui-dist",
+    "destination": "vendor/swagger",
+    "files": ["swagger-ui-bundle.js", "swagger-ui.css", "LICENSE", "NOTICE"]
+  }
+]

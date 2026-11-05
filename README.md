@@ -77,6 +77,8 @@ Docker-тести створюють окрему базу й прибирают
 
 `make audit-image` окремо збирає й перевіряє кінцевий Docker-образ через Trivy,
 зберігає SBOM і звіт у `artifacts/image-audit/`. [Деталі та винятки](docs/image-audit.md).
+`make audit-all` додає SBOM Python/frontend, перевірку файлів Swagger і наявні
+Python/npm аудити. [Команди та порівняння залежностей](docs/dependency-audit.md).
 
 ## Документація
 
@@ -86,4 +88,5 @@ Docker-тести створюють окрему базу й прибирают
 - [Збої, навантаження і резервні копії](docs/resilience.md)
 - [Результати тестів](docs/verification.md)
 - [Аудит Docker-образу та SBOM](docs/image-audit.md)
+- [SBOM Python/frontend і зміни залежностей](docs/dependency-audit.md)
 - [Використані матеріали](docs/sources.md)

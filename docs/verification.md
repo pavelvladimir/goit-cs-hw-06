@@ -76,6 +76,8 @@ Windows і тривалі навантаження не перевірялися
 Цей аудит повертає помилку й виконується окремо через `make audit-frontend`.
 `make audit` перевіряє Python. Системні пакети кінцевого Distroless-образу та його
 SBOM тепер перевіряє окремий `make audit-image`. [Команди й результат](image-audit.md).
+`make audit-all` об'єднує його з Python/frontend SBOM та наявними аудитами залежностей.
+[Результати й порівняння SBOM](dependency-audit.md).
 
 ## Де результати
 

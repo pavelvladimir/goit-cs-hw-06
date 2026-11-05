@@ -67,7 +67,7 @@ MEDIUM і LOW залишаються у звіті. Прострочена ба�
 ## Що перевірено локально
 
 05.11.2026, Linux ARM64, image ID
-`sha256:a43bf7c4e84c2163a6a34e0a28477f1649b4b43ed1360b45d2ac04a55da15e9f`:
+`sha256:17d44516af92567d3074ea88ce59fb3b2a5aece4cdefb4c91b76e531270f509d`:
 38 Debian-пакетів і 3 Python-залежності, усі включено в SBOM.
 Знайдено 31 HIGH, 107 MEDIUM, 54 LOW і 11 UNKNOWN; CRITICAL немає.
 Це кількість пар CVE/пакет: одна CVE може стосуватися кількох пакетів Python.
@@ -78,6 +78,8 @@ MEDIUM і LOW залишаються у звіті. Прострочена ба�
 архітектури та build stages не охоплені. Зібраний JavaScript не містить повного
 npm dependency graph, тому `make audit` і `make audit-frontend` залишаються потрібними.
 SBOM — перелік знайдених компонентів, не доказ відсутності всіх вразливостей.
+Lockfile SBOM, перевірка Swagger UI та загальний `make audit-all` описані
+в [dependency-audit.md](dependency-audit.md).
 
 Використано [Trivy image scanning](https://trivy.dev/docs/latest/target/container_image/)
 і [CycloneDX export](https://trivy.dev/docs/latest/supply-chain/sbom/).

@@ -22,7 +22,7 @@ RUN npm install --global pnpm@12.11.2 && npm cache clean --force
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --store-dir /tmp/pnpm-store \
     && rm -rf /tmp/pnpm-store
-COPY frontend/tsconfig.json frontend/next.config.ts frontend/postcss.config.mjs frontend/.htmlvalidate.json frontend/openapi-ts.config.ts ./
+COPY frontend/tsconfig.json frontend/next.config.ts frontend/postcss.config.mjs frontend/.htmlvalidate.json frontend/openapi-ts.config.ts frontend/published-assets.json ./
 COPY --from=python-builder /app/frontend/openapi.json ./openapi.json
 COPY frontend/src ./src
 COPY frontend/public ./public

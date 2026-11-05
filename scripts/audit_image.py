@@ -54,7 +54,9 @@ def exception_key(value: dict[str, Any]) -> tuple[str, ...]:
     return tuple(value[field] for field in MATCH_FIELDS)
 
 
-def load_exceptions(path: Path) -> list[dict[str, Any]]:
+def load_exceptions(
+    path: Path, *, scopes: set[str] | None = None
+) -> list[dict[str, Any]]:
     policy = read_json(path)
     if set(policy) != {"schema_version", "exceptions"} or policy["schema_version"] != 1:
         raise AuditError("Unsupported exception policy")
@@ -62,16 +64,19 @@ def load_exceptions(path: Path) -> list[dict[str, Any]]:
     if not isinstance(entries, list):
         raise AuditError("exceptions must be a list")
     seen = set()
+    fields = EXCEPTION_FIELDS | ({"scope"} if scopes is not None else set())
     for entry in entries:
         if (
             not isinstance(entry, dict)
-            or set(entry) != EXCEPTION_FIELDS
+            or set(entry) != fields
             or any(not isinstance(v, str) or not v.strip() for v in entry.values())
         ):
             raise AuditError(
                 "Each exception needs exact scope, reason, owner, expiry and reference"
             )
-        key = exception_key(entry)
+        if scopes is not None and entry["scope"] not in scopes:
+            raise AuditError(f"Unknown exception scope: {entry['scope']}")
+        key = ((entry["scope"],) if scopes is not None else ()) + exception_key(entry)
         if key in seen or any(re.search(r"[?*\[\]]", part) for part in key):
             raise AuditError("Duplicate or wildcard exception")
         if not entry["reference"].startswith("https://"):
@@ -170,9 +175,12 @@ def evaluate(
         for e in reviewed
         if e["state"] != "applied"
     ]
-    if scan["Metadata"]["OS"].get("EOSL"):
+    if scan.get("Metadata", {}).get("OS", {}).get("EOSL"):
         errors.append("The base operating system is end-of-life")
     blocked = sum(f["decision"] == "block" for f in findings)
+    packages: Counter[str] = Counter()
+    for result in scan["Results"]:
+        packages[result["Type"]] += len(result.get("Packages", []))
     return {
         "status": "fail" if blocked or errors else "pass",
         "blocking_severities": sorted(BLOCKING),
@@ -181,7 +189,7 @@ def evaluate(
         "findings": findings,
         "exceptions": reviewed,
         "policy_errors": errors,
-        "packages": {r["Type"]: len(r.get("Packages", [])) for r in scan["Results"]},
+        "packages": dict(packages),
     }
 
 
@@ -191,7 +199,7 @@ def cell(value: object) -> str:
 
 def render_report(report: dict[str, Any]) -> str:
     lines = [
-        "# Аудит Docker-образу",
+        f"# Аудит: {report.get('scope', 'Docker-образ')}",
         "",
         f"Результат: **{report['status'].upper()}**. Час UTC: {report['started_at']}.",
         "",
@@ -205,6 +213,19 @@ def render_report(report: dict[str, Any]) -> str:
             f"Створено: {image['created']}. "
             "Registry digests: "
             f"{', '.join(image['repo_digests']) or 'немає (локальна збірка)'}.",
+            "",
+        ]
+    if "inputs_sha256" in report:
+        lines += [
+            f"Git checkout: `{report['source']['checkout_commit']}`; "
+            f"незбережені зміни: {report['source']['checkout_dirty']}.",
+            "",
+            "SHA-256 вхідних файлів:",
+            "",
+            *(
+                f"- `{name}`: `{digest}`"
+                for name, digest in report["inputs_sha256"].items()
+            ),
             "",
         ]
     if report["status"] == "error":
@@ -268,11 +289,24 @@ def render_report(report: dict[str, Any]) -> str:
         "",
         "`sbom.cdx.json` — CycloneDX; `trivy.json` — повний результат.",
         "`report.json` містить ідентифікацію образу, бази CVE та SHA-256 файлів.",
-        "Перевірено кінцевий Linux-образ app для однієї платформи.",
-        "MongoDB і build stages не охоплені. Для зібраного JS потрібен npm audit.",
         "Це локальний SBOM, без підпису чи registry attestation.",
         "",
     ]
+    lines += report.get(
+        "limitations",
+        [
+            "Перевірено кінцевий Linux-образ app для однієї платформи.",
+            "MongoDB і build stages не охоплені. Для зібраного JS потрібен npm audit.",
+        ],
+    )
+    if report.get("published_assets"):
+        lines += ["", "## Перевірені файли у static export", ""]
+        for asset in report["published_assets"]:
+            lines.append(
+                f"- `{asset['purl']}` → `{asset['output']}`; "
+                f"SHA-256 `{asset['sha256']}`"
+            )
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -303,6 +337,7 @@ def audit(image: str | None, output: Path, policy: Path) -> int:
     output.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = {
         "schema_version": 1,
+        "scope": "image",
         "status": "error",
         "error": "Audit interrupted",
         "started_at": datetime.now(UTC).isoformat(),
