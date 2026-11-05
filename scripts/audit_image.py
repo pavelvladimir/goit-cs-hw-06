@@ -53,6 +53,7 @@ class AuditError(Exception):
 
 
 def read_json(path: Path) -> dict[str, Any]:
+    """Read a report or policy, rejecting JSON values other than objects."""
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise AuditError(f"{path.name}: expected a JSON object")
@@ -60,10 +61,12 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def write_json(path: Path, value: object) -> None:
+    """Write readable UTF-8 JSON with a trailing newline."""
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
 def run(*command: str, capture: bool = False) -> str:
+    """Run a checked command from the repository, optionally capturing stdout."""
     result = subprocess.run(
         command,
         cwd=ROOT,
@@ -75,12 +78,14 @@ def run(*command: str, capture: bool = False) -> str:
 
 
 def exception_key(value: dict[str, Any]) -> tuple[str, ...]:
+    """Identify one CVE for an exact package type, name and installed version."""
     return tuple(value[field] for field in MATCH_FIELDS)
 
 
 def load_exceptions(
     path: Path, *, scopes: set[str] | None = None
 ) -> list[dict[str, Any]]:
+    """Validate exact exception fields and scopes; reject wildcards and duplicates."""
     policy = read_json(path)
     if set(policy) != {"schema_version", "exceptions"} or policy["schema_version"] != 1:
         raise AuditError("Unsupported exception policy")
@@ -113,6 +118,7 @@ def load_exceptions(
 
 
 def review_inputs() -> dict[str, str]:
+    """Fingerprint the source and build inputs used to justify image exceptions."""
     return {
         name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
         for name in sorted(REVIEW_INPUTS)
@@ -120,6 +126,7 @@ def review_inputs() -> dict[str, str]:
 
 
 def load_image_review(policy: Path, *, building: bool) -> dict[str, Any]:
+    """Require a dated review matching the checkout used for a new image build."""
     # Reachability was reviewed for this application, not for arbitrary images
     # that happen to contain the same Debian packages.
     if not building:
@@ -139,6 +146,7 @@ def load_image_review(policy: Path, *, building: bool) -> dict[str, Any]:
 
 
 def verify_image_review(image_id: str, review: dict[str, Any]) -> dict[str, Any]:
+    """Check image identity assumptions and reject inputs changed during the audit."""
     evidence = json.loads(
         run(
             "docker",
@@ -172,6 +180,7 @@ def verify_image_review(image_id: str, review: dict[str, Any]) -> dict[str, Any]
 def validate_inventory(
     scan: dict[str, Any], sbom: dict[str, Any], image_id: str
 ) -> None:
+    """Require Debian/Python inventories and a complete SBOM for the same image ID."""
     if scan.get("SchemaVersion") != 2 or scan.get("ArtifactType") != "container_image":
         raise AuditError("Expected a Trivy container image report, schema 2")
     metadata = scan["Metadata"]
@@ -204,6 +213,7 @@ def validate_inventory(
 def evaluate(
     scan: dict[str, Any], exceptions: list[dict[str, Any]], today: date
 ) -> dict[str, Any]:
+    """Classify every finding and fail on blocking CVEs or invalid exception use."""
     findings = []
     counts: Counter[str] = Counter()
     used = set()
@@ -275,10 +285,12 @@ def evaluate(
 
 
 def cell(value: object) -> str:
+    """Escape table delimiters and line breaks in report values."""
     return str(value).replace("|", "\\|").replace("\n", " ").replace("\r", " ")
 
 
 def render_report(report: dict[str, Any]) -> str:
+    """Render audit identity, findings, exceptions and limitations as Markdown."""
     lines = [
         f"# Аудит: {report.get('scope', 'Docker-образ')}",
         "",
@@ -400,6 +412,7 @@ def render_report(report: dict[str, Any]) -> str:
 
 
 def trivy(work: Path, cache: Path, *arguments: str, capture: bool = False) -> str:
+    """Run the pinned scanner with only its work/cache mounts and no Docker socket."""
     return run(
         "docker",
         "run",
@@ -422,6 +435,7 @@ def trivy(work: Path, cache: Path, *arguments: str, capture: bool = False) -> st
 
 
 def audit(image: str | None, output: Path, policy: Path) -> int:
+    """Retain scan/SBOM evidence; return 0 for PASS, 1 for FAIL, or 2 for ERROR."""
     # Never overwrite an old PASS with a partial run, or mistake it for a new result.
     output.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = {
@@ -495,6 +509,7 @@ def audit(image: str | None, output: Path, policy: Path) -> int:
                 "/dev/null",
                 "--skip-version-check",
                 "--no-progress",
+                "--disable-telemetry",
                 "--timeout",
                 "10m",
                 "--output",
@@ -557,6 +572,7 @@ def audit(image: str | None, output: Path, policy: Path) -> int:
 
 
 def main() -> int:
+    """Parse image-audit options and select a new timestamped report directory."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--image", help="Audit an existing local image instead of building"

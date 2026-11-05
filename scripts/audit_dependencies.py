@@ -40,12 +40,14 @@ ERRORS = (
 
 
 def sha256(path: Path) -> str:
+    """Hash file bytes for input snapshots, published assets and report integrity."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def inventory(
     scan: dict[str, Any], kind: str, include_dev: bool
 ) -> list[dict[str, Any]]:
+    """Validate a lockfile scan and deduplicate PURLs while retaining package roles."""
     if scan.get("SchemaVersion") != 2 or scan.get("ArtifactType") != "filesystem":
         raise common.AuditError("Expected a Trivy filesystem report, schema 2")
     results = scan.get("Results", [])
@@ -85,6 +87,7 @@ def inventory(
 
 
 def validate_sbom(sbom: dict[str, Any], components: list[dict[str, Any]]) -> None:
+    """Require the CycloneDX component identities to match the scan exactly."""
     if sbom.get("bomFormat") != "CycloneDX":
         raise common.AuditError("Expected a CycloneDX SBOM")
     actual = {p["purl"] for p in sbom["components"] if p.get("purl")}
@@ -93,6 +96,7 @@ def validate_sbom(sbom: dict[str, Any], components: list[dict[str, Any]]) -> Non
 
 
 def safe_child(root: Path, relative: str) -> Path:
+    """Resolve an asset path and reject escapes, including through symlinks."""
     path = (root / relative).resolve()
     if not path.is_relative_to(root.resolve()) or path == root.resolve():
         raise common.AuditError(f"Asset escapes its directory: {relative}")
@@ -154,6 +158,7 @@ def scan_scope(
     exceptions: list[dict[str, Any]],
     source: dict[str, Any],
 ) -> int:
+    """Audit one input snapshot and preserve its SBOM, policy and failure evidence."""
     output.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = {
         "schema_version": 1,
@@ -258,6 +263,7 @@ def scan_scope(
 
 
 def checked_run(command: list[str], log: Path) -> int:
+    """Capture combined command output and return its unmodified exit status."""
     with log.open("w") as stream:
         return subprocess.run(
             command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT, check=False
@@ -265,6 +271,7 @@ def checked_run(command: list[str], log: Path) -> int:
 
 
 def snapshot(kind: str) -> dict[str, bytes]:
+    """Read the exact manifest and lockfile bytes for one dependency family."""
     return {name: (ROOT / name).read_bytes() for name in INPUTS[kind]}
 
 
@@ -310,6 +317,7 @@ def verify_scopes(output: Path, names: list[str]) -> None:
 
 
 def audit(target: str, output: Path, baseline: Path | None) -> int:
+    """Run selected audits and comparison; any failed or incomplete step blocks PASS."""
     output.mkdir(parents=True, exist_ok=False)
     summary: dict[str, Any] = {
         "schema_version": 1,
@@ -440,6 +448,7 @@ def audit(target: str, output: Path, baseline: Path | None) -> int:
 
 
 def main() -> int:
+    """Parse scope, output and baseline options for a new dependency audit."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--target", choices=("python", "frontend", "all"), default="all"

@@ -9,6 +9,7 @@ from scripts import audit_image as common
 
 
 def load_report(directory: Path, scope: str) -> tuple[dict[str, Any], set[str]]:
+    """Load a completed scope report only after checking its artifact hashes."""
     report = common.read_json(directory / scope / "report.json")
     if report.get("scope", "image") != scope or report["status"] not in {
         "pass",
@@ -33,7 +34,10 @@ def load_report(directory: Path, scope: str) -> tuple[dict[str, Any], set[str]]:
 
 
 def package_changes(before: set[str], after: set[str]) -> dict[str, Any]:
+    """Compare component versions without conflating namespaces or qualifiers."""
+
     def group(values: set[str]) -> dict[str, set[str]]:
+        """Group each component's installed versions, preserving PURL qualifiers."""
         grouped: dict[str, set[str]] = defaultdict(set)
         for purl in values:
             # Preserve namespace and registry/platform qualifiers, including scoped
@@ -61,6 +65,7 @@ def package_changes(before: set[str], after: set[str]) -> dict[str, Any]:
 
 
 def compare_runs(before: Path, after: Path, scopes: list[str]) -> dict[str, Any]:
+    """Compare verified packages and CVEs, noting database and platform changes."""
     result: dict[str, Any] = {"baseline": str(before.resolve()), "scopes": {}}
     for scope in scopes:
         old, old_ids = load_report(before, scope)
@@ -96,6 +101,7 @@ def compare_runs(before: Path, after: Path, scopes: list[str]) -> dict[str, Any]
 
 
 def render_changes(changes: dict[str, Any]) -> str:
+    """Render package and finding changes without attributing every CVE to code."""
     lines = [
         "## Зміни проти попереднього аудиту",
         "",

@@ -80,6 +80,7 @@ def test_nul_address_from_dotenv_never_reaches_mongo(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, key: str, value: str
 ) -> None:
     # Unlike os.environ, .env can contain NUL: cover CVE-2026-116566's input path.
+    """Reject NUL-containing file configuration before constructing MongoClient."""
     env = tmp_path / ".env"
     env.write_text(f"{key}='{value}'\n")
     monkeypatch.setattr(main, "ENV_FILE", env)

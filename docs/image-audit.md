@@ -12,6 +12,7 @@ Trivy працює в окремому контейнері, без доступ
 Для стороннього або вже зібраного образу використовуйте порожню політику:
 
 ```bash
+mkdir -p artifacts
 printf '{"schema_version":1,"exceptions":[]}\n' > artifacts/no-image-exceptions.json
 uv run --locked python -m scripts.audit_image --image goit-cs-hw-06-app \
   --exceptions artifacts/no-image-exceptions.json

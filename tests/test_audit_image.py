@@ -19,6 +19,7 @@ TODAY = date(2026, 11, 5)
 
 @pytest.fixture
 def scan() -> dict[str, Any]:
+    """Provide an image inventory with a vulnerable and a clean Debian package."""
     return {
         "SchemaVersion": 2,
         "ArtifactType": "container_image",
@@ -56,6 +57,7 @@ def scan() -> dict[str, Any]:
 
 @pytest.fixture
 def sbom(scan: dict[str, Any]) -> dict[str, Any]:
+    """Mirror the scan inventory with the same immutable image identity."""
     return {
         "bomFormat": "CycloneDX",
         "metadata": {
@@ -75,6 +77,7 @@ def sbom(scan: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.fixture
 def exception() -> dict[str, str]:
+    """Provide a narrow, expiring policy entry for the synthetic CVE only."""
     return {
         "type": "debian",
         "package": "libc6",
@@ -92,6 +95,7 @@ def exception() -> dict[str, str]:
 def test_gate_keeps_all_findings_including_unfixed(
     scan: dict[str, Any], severity: str, fixed: str
 ) -> None:
+    """Keep severity gates independent of whether a fixed version is available."""
     scan["Results"][0]["Vulnerabilities"][0].update(
         Severity=severity, FixedVersion=fixed
     )
@@ -107,6 +111,7 @@ def test_gate_keeps_all_findings_including_unfixed(
 def test_no_vulnerabilities_is_valid_but_unknown_severity_is_not(
     scan: dict[str, Any],
 ) -> None:
+    """Accept clean inventories but reject malformed severities and EOL systems."""
     scan["Results"][0]["Vulnerabilities"][0]["Severity"] = "high"
     with pytest.raises(module.AuditError, match="Unknown severity"):
         module.evaluate(scan, [], TODAY)
@@ -119,6 +124,7 @@ def test_no_vulnerabilities_is_valid_but_unknown_severity_is_not(
 def test_exception_is_visible_and_expires_after_utc_expiry_day(
     scan: dict[str, Any], exception: dict[str, str]
 ) -> None:
+    """Retain excepted CVEs and enforce the inclusive UTC expiry boundary."""
     report = module.evaluate(scan, [exception], TODAY)
     assert report["status"] == "pass"
     assert report["counts"]["HIGH"] == 1
@@ -135,6 +141,7 @@ def test_exception_is_visible_and_expires_after_utc_expiry_day(
 def test_exception_cannot_hide_another_package_version_type_or_cve(
     scan: dict[str, Any], exception: dict[str, str], field: str
 ) -> None:
+    """Changing any identity field must leave the original finding blocked."""
     exception[field] += "-different"
     report = module.evaluate(scan, [exception], TODAY)
     assert report["status"] == "fail"
@@ -145,6 +152,7 @@ def test_exception_cannot_hide_another_package_version_type_or_cve(
 def test_unused_exception_also_fails_a_clean_scan(
     scan: dict[str, Any], exception: dict[str, str]
 ) -> None:
+    """Require removal of obsolete exceptions even when the scan is clean."""
     scan["Results"][0]["Vulnerabilities"] = []
     report = module.evaluate(scan, [exception], TODAY)
     assert report["status"] == "fail"
@@ -169,6 +177,7 @@ def test_unused_exception_also_fails_a_clean_scan(
 def test_invalid_exceptions_are_rejected(
     tmp_path: Path, exception: dict[str, str], problem: str
 ) -> None:
+    """Reject malformed policies before they can weaken the audit gate."""
     policy: dict[str, Any] = {"schema_version": 1, "exceptions": [exception]}
     if problem == "root":
         policy["ignore_unfixed"] = True
@@ -199,6 +208,7 @@ def test_invalid_exceptions_are_rejected(
 def test_valid_exception_policy_and_invalid_json(
     tmp_path: Path, exception: dict[str, str]
 ) -> None:
+    """Accept an exact policy while rejecting a non-object JSON document."""
     path = tmp_path / "policy.json"
     module.write_json(path, {"schema_version": 1, "exceptions": [exception]})
     assert module.load_exceptions(path) == [exception]
@@ -224,6 +234,7 @@ def test_valid_exception_policy_and_invalid_json(
 def test_sbom_must_include_nonvulnerable_packages_and_the_same_image(
     scan: dict[str, Any], sbom: dict[str, Any], problem: str
 ) -> None:
+    """Require complete inventories and matching image identity in scan and SBOM."""
     if problem == "schema":
         scan["SchemaVersion"] = 3
     elif problem == "scan_id":
@@ -270,6 +281,7 @@ def test_audit_preserves_evidence_and_returns_distinct_exit_codes(
     exception: dict[str, str],
     scenario: str,
 ) -> None:
+    """Exercise build, scan and policy failures without overwriting prior evidence."""
     monkeypatch.setattr(module, "ROOT", tmp_path)
     today = datetime.now(UTC)
     policy = tmp_path / "exceptions.json"
@@ -297,6 +309,7 @@ def test_audit_preserves_evidence_and_returns_distinct_exit_codes(
     def fake_run(
         command: tuple[str, ...], **kwargs: Any
     ) -> subprocess.CompletedProcess[str]:
+        """Emulate Docker/Trivy outputs and enforce the scanner command contract."""
         calls.append(command)
         assert kwargs["cwd"] == tmp_path
         assert kwargs["check"] is True
@@ -349,6 +362,7 @@ def test_audit_preserves_evidence_and_returns_distinct_exit_codes(
                     raise subprocess.CalledProcessError(1, command)
                 assert "--ignore-unfixed" not in command
                 assert "--skip-db-update" not in command
+                assert "--disable-telemetry" in command
                 assert command[command.index("--ignorefile") + 1] == "/dev/null"
                 module.write_json(work / "trivy.json", scan)
             elif "convert" in command:
@@ -414,6 +428,7 @@ def test_audit_preserves_evidence_and_returns_distinct_exit_codes(
 def test_cli_refuses_existing_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Refuse an existing output directory instead of replacing its audit history."""
     monkeypatch.setattr(sys, "argv", ["audit_image", "--output", str(tmp_path)])
     assert module.main() == 2
 
@@ -424,6 +439,7 @@ def test_cli_refuses_existing_output(
 def test_application_exceptions_require_the_reviewed_build_inputs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
 ) -> None:
+    """Reject external images, invalid review dates and changed source fingerprints."""
     monkeypatch.setattr(module, "ROOT", tmp_path)
     for name in module.REVIEW_INPUTS:
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
@@ -452,6 +468,7 @@ def test_application_exceptions_require_the_reviewed_build_inputs(
 def test_review_checks_the_built_image_and_detects_changes_during_audit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
 ) -> None:
+    """Invalidate exceptions if the image probe or final checkout contradicts review."""
     monkeypatch.setattr(module, "ROOT", tmp_path)
     for name in module.REVIEW_INPUTS:
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
@@ -481,10 +498,12 @@ def test_review_checks_the_built_image_and_detects_changes_during_audit(
 def test_cli_defaults_and_markdown_escaping(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Check CLI defaults and keep untrusted values inside their Markdown cells."""
     monkeypatch.setattr(module, "ROOT", tmp_path)
     monkeypatch.setattr(sys, "argv", ["audit_image"])
 
     def audit(image: str | None, output: Path, policy: Path) -> int:
+        """Capture the default CLI arguments without building a real container."""
         assert image is None
         assert output.parent == tmp_path / "artifacts/image-audit"
         assert policy == tmp_path / "security/image-exceptions.json"

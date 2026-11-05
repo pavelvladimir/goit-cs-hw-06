@@ -18,6 +18,7 @@ from scripts import audit_image as common
 def package(
     name: str, version: str = "1.0", *, dev: bool = False, python: bool = False
 ) -> dict[str, Any]:
+    """Create a minimal package identity with an explicit development role."""
     return {
         "Name": name,
         "Version": version,
@@ -27,6 +28,7 @@ def package(
 
 
 def scan_for(scope: str) -> dict[str, Any]:
+    """Model runtime/all inventories and a frontend-only synthetic finding."""
     python = scope.startswith("python")
     packages = [package("pymongo" if python else "react", python=python)]
     if scope.endswith("all"):
@@ -60,6 +62,7 @@ def scan_for(scope: str) -> dict[str, Any]:
 
 
 def sbom_for(scan: dict[str, Any]) -> dict[str, Any]:
+    """Build a CycloneDX fixture from every package in the supplied scan."""
     return {
         "bomFormat": "CycloneDX",
         "components": [
@@ -72,6 +75,7 @@ def sbom_for(scan: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.fixture
 def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Isolate manifests and matching published assets in a temporary checkout."""
     monkeypatch.setattr(module, "ROOT", tmp_path)
     monkeypatch.setattr(common, "ROOT", tmp_path)
     for inputs in module.INPUTS.values():
@@ -115,9 +119,11 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 @pytest.fixture
 def fake_tools(project: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Replace external tools with controlled scan results and injectable failures."""
     state: dict[str, Any] = {"failure": None, "calls": [], "time": datetime.now(UTC)}
 
     def run(*command: str, capture: bool = False) -> str:
+        """Return a fixed clean Git checkout identity for audit fixtures."""
         assert capture
         if command[:2] == ("git", "rev-parse"):
             return "a" * 40
@@ -125,6 +131,7 @@ def fake_tools(project: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]
         return ""
 
     def trivy(work: Path, cache: Path, *args: str, capture: bool = False) -> str:
+        """Emulate scans, conversion and database metadata with scoped failure modes."""
         state["calls"].append((work.name, args))
         if state["failure"] == "scan" and args[0] == "fs":
             raise subprocess.CalledProcessError(1, args)
@@ -163,6 +170,7 @@ def fake_tools(project: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]
         return ""
 
     def checked_run(command: list[str], log: Path) -> int:
+        """Simulate native tool failures or input mutations while retaining logs."""
         state["calls"].append(command)
         log.write_text("diagnostics")
         if state["failure"] == "build" and command == ["make", "build-frontend"]:
@@ -178,6 +186,7 @@ def fake_tools(project: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]
         )
 
     def image_audit(image: str | None, output: Path, policy: Path) -> int:
+        """Model the installed Python inventory for cross-checking against uv.lock."""
         state["calls"].append("image")
         output.mkdir()
         status = "error" if state["failure"] == "image" else "fail"
@@ -202,6 +211,7 @@ def fake_tools(project: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]
 def test_end_to_end_reports_and_complete_inventory(
     project: Path, fake_tools: dict[str, Any], target: str
 ) -> None:
+    """Require all selected reports, component roles and artifact hashes to agree."""
     out = project / "reports" / target
     assert module.audit(target, out, None) == (1 if target == "all" else 0)
     summary = common.read_json(out / "report.json")
@@ -259,6 +269,7 @@ def test_end_to_end_reports_and_complete_inventory(
 def test_pipeline_fails_closed_but_keeps_available_evidence(
     project: Path, fake_tools: dict[str, Any], failure: str
 ) -> None:
+    """Preserve completed evidence without allowing a partial pipeline to pass."""
     fake_tools["failure"] = failure
     out = project / "reports"
     assert module.audit("all", out, None) == 2
@@ -278,6 +289,7 @@ def test_pipeline_fails_closed_but_keeps_available_evidence(
 def test_native_audit_failure_is_not_swallowed(
     project: Path, fake_tools: dict[str, Any]
 ) -> None:
+    """Propagate a failing native audit into the aggregate result and keep its log."""
     fake_tools["failure"] = "native"
     out = project / "reports"
     assert module.audit("all", out, None) == 1
@@ -292,6 +304,7 @@ def test_native_audit_failure_is_not_swallowed(
 def test_published_assets_reject_wrong_version_stale_files_and_unlisted_files(
     project: Path, problem: str
 ) -> None:
+    """Detect stale or unexpected vendor files instead of trusting a prior build."""
     if problem == "version":
         common.write_json(
             project / "frontend/node_modules/swagger-ui-dist/package.json",
@@ -322,6 +335,7 @@ def test_published_assets_reject_wrong_version_stale_files_and_unlisted_files(
     "problem", ["schema", "target", "empty", "dev", "identity", "bom", "missing"]
 )
 def test_inventory_completeness_is_required(problem: str) -> None:
+    """Reject malformed, empty or incorrectly scoped lockfile inventories."""
     scan = scan_for("python-runtime")
     if problem == "schema":
         scan["ArtifactType"] = "container_image"
@@ -344,6 +358,7 @@ def test_inventory_completeness_is_required(problem: str) -> None:
 
 
 def test_peer_duplicates_keep_both_roles_and_root_project() -> None:
+    """Deduplicate component identities without losing roles or the project root."""
     scan = scan_for("frontend-all")
     packets = scan["Results"][0]["Packages"]
     packets += [package("react", dev=True), package("react")]
@@ -355,6 +370,7 @@ def test_peer_duplicates_keep_both_roles_and_root_project() -> None:
 
 
 def test_exception_scopes_do_not_leak(project: Path) -> None:
+    """Validate scope names and keep an exception out of unrelated audits."""
     entry = {
         "scope": "python-all",
         "type": "uv",
@@ -379,6 +395,7 @@ def test_exception_scopes_do_not_leak(project: Path) -> None:
 def test_scoped_expiry_only_affects_the_matching_audit(
     project: Path, fake_tools: dict[str, Any]
 ) -> None:
+    """Apply expiry and matching rules only within the exception scope."""
     entry = {
         "scope": "frontend-all",
         "type": "pnpm",
@@ -422,6 +439,7 @@ def test_scoped_expiry_only_affects_the_matching_audit(
 def test_version_diff_preserves_scoped_packages_registries_and_multiple_versions() -> (
     None
 ):
+    """Keep distinct namespaces, registries and simultaneous versions in diffs."""
     before = {
         "pkg:npm/@org/lib@1.0",
         "pkg:npm/@org/lib@2.0",
@@ -450,6 +468,7 @@ def test_version_diff_preserves_scoped_packages_registries_and_multiple_versions
 def test_baseline_comparison_and_integrity(
     project: Path, fake_tools: dict[str, Any]
 ) -> None:
+    """Compare findings and database changes only while baseline hashes match."""
     before, after = project / "before", project / "after"
     assert module.audit("frontend", before, None) == 0
     fake_tools["time"] += timedelta(minutes=1)
@@ -480,6 +499,7 @@ def test_baseline_comparison_and_integrity(
 def test_invalid_baseline_blocks_aggregate_success(
     project: Path, fake_tools: dict[str, Any]
 ) -> None:
+    """Treat an unavailable baseline as ERROR rather than silently skipping it."""
     out = project / "reports"
     assert module.audit("python", out, project / "missing") == 2
     assert common.read_json(out / "report.json")["status"] == "error"
@@ -488,6 +508,7 @@ def test_invalid_baseline_blocks_aggregate_success(
 def test_comparison_rejects_incomplete_reports(
     project: Path, fake_tools: dict[str, Any]
 ) -> None:
+    """Refuse to compare an interrupted audit as if it were a completed baseline."""
     out = project / "reports"
     module.audit("python", out, None)
     path = out / "python-runtime/report.json"
@@ -501,6 +522,7 @@ def test_comparison_rejects_incomplete_reports(
 def test_image_comparison_supports_previous_reports_and_marks_platform_changes(
     project: Path, fake_tools: dict[str, Any]
 ) -> None:
+    """Accept legacy image reports but reject modified exception-review evidence."""
     before, after = project / "before", project / "after"
     for directory, platform in ((before, "linux/arm64"), (after, "linux/amd64")):
         module.audit("python", directory, None)
@@ -529,6 +551,7 @@ def test_image_comparison_supports_previous_reports_and_marks_platform_changes(
 
 
 def test_checked_run_logs_errors(tmp_path: Path) -> None:
+    """Retain stderr and the original nonzero exit code from a real subprocess."""
     log = tmp_path / "tool.log"
     assert (
         module.checked_run(
@@ -547,11 +570,13 @@ def test_checked_run_logs_errors(tmp_path: Path) -> None:
 def test_cli_defaults_and_existing_output(
     project: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Reject reused output and select the correct scope and default report root."""
     monkeypatch.setattr(sys, "argv", ["audit_dependencies", "--output", str(project)])
     assert module.main() == 2
     monkeypatch.setattr(sys, "argv", ["audit_dependencies", "--target", "python"])
 
     def audit(target: str, output: Path, baseline: Path | None) -> int:
+        """Capture parsed CLI options without invoking scanners or network tools."""
         assert target == "python" and baseline is None
         assert output.parent == project / "artifacts/dependency-audit"
         return 0
