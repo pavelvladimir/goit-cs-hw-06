@@ -1,4 +1,425 @@
 {
   "schema_version": 1,
-  "exceptions": []
+  "exceptions": [
+    {
+      "type": "debian",
+      "package": "libexpat1",
+      "version": "2.9.0-1~deb13u1",
+      "vulnerability": "CVE-2026-113351",
+      "reason": "XML_ParserReset accounting denial of service requires reusing an XML parser. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-113351"
+    },
+    {
+      "type": "debian",
+      "package": "libexpat1",
+      "version": "2.9.0-1~deb13u1",
+      "vulnerability": "CVE-2026-117610",
+      "reason": "The external entity parser NULL dereference requires parsing attacker-controlled XML chunks. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-117610"
+    },
+    {
+      "type": "debian",
+      "package": "libexpat1",
+      "version": "2.9.0-1~deb13u1",
+      "vulnerability": "CVE-2026-118370",
+      "reason": "The attribute-count overflow requires a multi-gigabyte XML start tag. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-118370"
+    },
+    {
+      "type": "debian",
+      "package": "libexpat1",
+      "version": "2.9.0-1~deb13u1",
+      "vulnerability": "CVE-2026-115506",
+      "reason": "The entity amplification denial of service requires XML DTD expansion. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-115506"
+    },
+    {
+      "type": "debian",
+      "package": "libncursesw6",
+      "version": "6.5+20250216-2",
+      "vulnerability": "CVE-2025-69720",
+      "reason": "The overflow is in progs/infocmp.c (the infocmp CLI), not the shipped ncurses/tinfo library API. The audited Distroless image has no infocmp executable. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-15308",
+      "reason": "The CPU denial of service requires feeding uncontrolled markup to html.parser.HTMLParser. main.py serves static HTML and parses HTTP headers with http.server; it does not parse HTML. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-15308"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19445",
+      "reason": "The use-after-free requires a TLS server sni_callback that replaces SSLContext. The application listens with plain HTTPServer/TCPServer and creates no TLS server or SNI callback. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19445"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19553",
+      "reason": "The verification bypass requires SSLContext.wrap_bio without a valid server_hostname. main.py uses synchronous PyMongo over plain TCP (no TLS options or URI); no wrap_bio/asyncio TLS path is used. This is not a recommendation to disable TLS. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19553"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-7210",
+      "reason": "The weak Expat hash salt matters when Python parses attacker-controlled XML. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-7210"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-82049",
+      "reason": "The tarfile filter bypass requires extracting a crafted TAR. The runtime serves static files and accepts form fields; it does not extract archives. Host-side backup tooling is not copied into the image. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-82049"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-116566",
+      "reason": "getaddrinfo can truncate a NUL-containing host/port. Settings.load rejects NUL via a full-match hostname allowlist and integer port validation, including .env input. Request fields never become network addresses; internal TCP addresses are constants. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-116566"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-stdlib",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-15308",
+      "reason": "The CPU denial of service requires feeding uncontrolled markup to html.parser.HTMLParser. main.py serves static HTML and parses HTTP headers with http.server; it does not parse HTML. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-15308"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-stdlib",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19445",
+      "reason": "The use-after-free requires a TLS server sni_callback that replaces SSLContext. The application listens with plain HTTPServer/TCPServer and creates no TLS server or SNI callback. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19445"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-stdlib",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19553",
+      "reason": "The verification bypass requires SSLContext.wrap_bio without a valid server_hostname. main.py uses synchronous PyMongo over plain TCP (no TLS options or URI); no wrap_bio/asyncio TLS path is used. This is not a recommendation to disable TLS. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19553"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-stdlib",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-7210",
+      "reason": "The weak Expat hash salt matters when Python parses attacker-controlled XML. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-7210"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-stdlib",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-82049",
+      "reason": "The tarfile filter bypass requires extracting a crafted TAR. The runtime serves static files and accepts form fields; it does not extract archives. Host-side backup tooling is not copied into the image. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-82049"
+    },
+    {
+      "type": "debian",
+      "package": "libpython3.13-stdlib",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-116566",
+      "reason": "getaddrinfo can truncate a NUL-containing host/port. Settings.load rejects NUL via a full-match hostname allowlist and integer port validation, including .env input. Request fields never become network addresses; internal TCP addresses are constants. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-116566"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119373",
+      "reason": "The FTS5 merge overflow requires a prefix MATCH query over negative rowids. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119373"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119371",
+      "reason": "The CTE stack exhaustion requires executing crafted SQL or a database view. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119371"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119372",
+      "reason": "The FTS3/4 snippet use-after-free requires an OR/NEAR full-text query. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119372"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119374",
+      "reason": "The FTS5 secure-delete overflow requires deleting from a crafted SQLite database. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119374"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119375",
+      "reason": "The stale-memory disclosure requires opening a crafted SQLite WAL/database pair. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119375"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119376",
+      "reason": "The COLLATE recursion denial of service requires executing deeply nested SQL. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119376"
+    },
+    {
+      "type": "debian",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "vulnerability": "CVE-2026-119379",
+      "reason": "The session changeset overflow requires applying a crafted SQLite changeset. The application stores data only in MongoDB; no sqlite3 imports, SQL execution or SQLite file/changeset input exist in the reviewed runtime. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-119379"
+    },
+    {
+      "type": "debian",
+      "package": "libtinfo6",
+      "version": "6.5+20250216-2",
+      "vulnerability": "CVE-2025-69720",
+      "reason": "The overflow is in progs/infocmp.c (the infocmp CLI), not the shipped ncurses/tinfo library API. The audited Distroless image has no infocmp executable. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+    },
+    {
+      "type": "debian",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "vulnerability": "CVE-2026-76642",
+      "reason": "The flaw is in util-linux mount helper/post-mount hooks, not libuuid. Neither mount nor nsenter is present in the final image; it runs as UID 65532. This is a source-package attribution, not an affected libuuid call path. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-76642"
+    },
+    {
+      "type": "debian",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "vulnerability": "CVE-2026-78408",
+      "reason": "The flaw is in nsenter --join-cgroup descriptor handling, not libuuid. Neither mount nor nsenter is present in the final image; it runs as UID 65532. This is a source-package attribution, not an affected libuuid call path. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-78408"
+    },
+    {
+      "type": "debian",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "vulnerability": "CVE-2026-78409",
+      "reason": "The flaw is in mount X-mount.subdir path resolution, not libuuid. Neither mount nor nsenter is present in the final image; it runs as UID 65532. This is a source-package attribution, not an affected libuuid call path. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-78409"
+    },
+    {
+      "type": "debian",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "vulnerability": "CVE-2026-78410",
+      "reason": "The flaw is in restricted bind mount ownership hooks, not libuuid. Neither mount nor nsenter is present in the final image; it runs as UID 65532. This is a source-package attribution, not an affected libuuid call path. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-78410"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-15308",
+      "reason": "The CPU denial of service requires feeding uncontrolled markup to html.parser.HTMLParser. main.py serves static HTML and parses HTTP headers with http.server; it does not parse HTML. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-15308"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19445",
+      "reason": "The use-after-free requires a TLS server sni_callback that replaces SSLContext. The application listens with plain HTTPServer/TCPServer and creates no TLS server or SNI callback. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19445"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19553",
+      "reason": "The verification bypass requires SSLContext.wrap_bio without a valid server_hostname. main.py uses synchronous PyMongo over plain TCP (no TLS options or URI); no wrap_bio/asyncio TLS path is used. This is not a recommendation to disable TLS. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19553"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-7210",
+      "reason": "The weak Expat hash salt matters when Python parses attacker-controlled XML. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-7210"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-82049",
+      "reason": "The tarfile filter bypass requires extracting a crafted TAR. The runtime serves static files and accepts form fields; it does not extract archives. Host-side backup tooling is not copied into the image. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-82049"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-minimal",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-116566",
+      "reason": "getaddrinfo can truncate a NUL-containing host/port. Settings.load rejects NUL via a full-match hostname allowlist and integer port validation, including .env input. Request fields never become network addresses; internal TCP addresses are constants. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-116566"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-venv",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-15308",
+      "reason": "The CPU denial of service requires feeding uncontrolled markup to html.parser.HTMLParser. main.py serves static HTML and parses HTTP headers with http.server; it does not parse HTML. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-15308"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-venv",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19445",
+      "reason": "The use-after-free requires a TLS server sni_callback that replaces SSLContext. The application listens with plain HTTPServer/TCPServer and creates no TLS server or SNI callback. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19445"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-venv",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-19553",
+      "reason": "The verification bypass requires SSLContext.wrap_bio without a valid server_hostname. main.py uses synchronous PyMongo over plain TCP (no TLS options or URI); no wrap_bio/asyncio TLS path is used. This is not a recommendation to disable TLS. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19553"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-venv",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-7210",
+      "reason": "The weak Expat hash salt matters when Python parses attacker-controlled XML. The reviewed application and its runtime dependencies do not parse XML: inputs are bounded URL-encoded forms/JSON, storage uses BSON. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-7210"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-venv",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-82049",
+      "reason": "The tarfile filter bypass requires extracting a crafted TAR. The runtime serves static files and accepts form fields; it does not extract archives. Host-side backup tooling is not copied into the image. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-82049"
+    },
+    {
+      "type": "debian",
+      "package": "python3.13-venv",
+      "version": "3.13.5-2+deb13u5",
+      "vulnerability": "CVE-2026-116566",
+      "reason": "getaddrinfo can truncate a NUL-containing host/port. Settings.load rejects NUL via a full-match hostname allowlist and integer port validation, including .env input. Request fields never become network addresses; internal TCP addresses are constants. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-116566"
+    },
+    {
+      "type": "debian",
+      "package": "zlib1g",
+      "version": "1:1.3.dfsg+really1.3.1-1+b1",
+      "vulnerability": "CVE-2026-76844",
+      "reason": "The overflow requires zlib gz* file writes after a write error (and gzclearerr in this version). main.py does not write gzip files or use ctypes/CFFI. CPython zlib uses deflate/inflate, not gzwrite; PyMongo compression is unconfigured and its optional zlib codec also uses stream APIs. Scope: only the checkout fingerprints in image-exceptions.review.json and the audit runtime checks, reviewed 2026-11-05. Re-review on input changes or expiry; remove after an upstream Debian/Distroless fix.",
+      "owner": "project-maintainers",
+      "expires": "2026-12-05",
+      "reference": "https://github.com/madler/zlib/blob/v1.3.2/gzwrite.c"
+    }
+  ]
 }

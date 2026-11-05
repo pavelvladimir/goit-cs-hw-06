@@ -92,10 +92,13 @@ MEDIUM і LOW залишаються видимими. Винятки — у `se
 Exit codes скрипта: `0` — PASS, `1` — FAIL, `2` — ERROR. Make має власний ненульовий код.
 
 05.11.2026 перевірено 4/44 записи Python runtime/all (включно з коренем проєкту),
-107/617 frontend declared/all і всі 4 файли Swagger UI. Python — без знахідок.
-У повному frontend є MEDIUM у minimatch 10.2.6; `pnpm audit` також повідомляє про нього.
-Образ має 31 HIGH і 11 UNKNOWN. `audit-all` завершив усі кроки з результатом **FAIL**.
-Порівняння всіх п'яти SBOM між двома запусками підтвердило відсутність змін пакетів і знахідок.
+107/618 frontend declared/all і всі 4 файли Swagger UI. Python і frontend — без знахідок.
+Вразливий minimatch 10.2.6 замінено на 11.0.1 через override для гілки 10;
+невразлива гілка 3 залишається для старих споживачів. Порівняння SBOM підтверджує
+зникнення цього CVE та оновлення tzdata в образі.
+`pip-audit`, `pnpm audit` і весь `audit-all` — **PASS**. В образі залишаються
+31 HIGH і 11 UNKNOWN, до яких застосовані [обґрунтовані винятки](image-audit.md#винятки)
+до 05.12.2026. Це не результат «нуль CVE»; усі знахідки залишаються у звітах.
 
 Підтримка lockfiles: [Trivy uv](https://trivy.dev/docs/latest/coverage/language/python/#uv)
 та [Trivy pnpm](https://trivy.dev/docs/latest/coverage/language/nodejs/#pnpm).

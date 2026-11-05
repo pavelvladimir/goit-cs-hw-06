@@ -22,6 +22,30 @@ SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN")
 BLOCKING = {"CRITICAL", "HIGH", "UNKNOWN"}
 MATCH_FIELDS = ("type", "package", "version", "vulnerability")
 EXCEPTION_FIELDS = {*MATCH_FIELDS, "reason", "owner", "expires", "reference"}
+REVIEW_INPUTS = {
+    "main.py",
+    "Dockerfile",
+    ".dockerignore",
+    ".python-version",
+    "pyproject.toml",
+    "uv.lock",
+    "docker-compose.yaml",
+    "scripts/__init__.py",
+    "scripts/export_openapi.py",
+}
+REVIEW_PROBE = """
+import hashlib, json, os
+from pathlib import Path
+
+tools = ('infocmp', 'mount', 'nsenter')
+directories = ('/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin')
+print(json.dumps({
+    'main_sha256': hashlib.sha256(Path('/app/main.py').read_bytes()).hexdigest(),
+    'uid': os.getuid(),
+    'unexpected_tools': [str(Path(d) / t) for d in directories for t in tools
+                         if (Path(d) / t).exists()],
+}))
+"""
 
 
 class AuditError(Exception):
@@ -86,6 +110,63 @@ def load_exceptions(
         date.fromisoformat(entry["expires"])
         seen.add(key)
     return entries
+
+
+def review_inputs() -> dict[str, str]:
+    return {
+        name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+        for name in sorted(REVIEW_INPUTS)
+    }
+
+
+def load_image_review(policy: Path, *, building: bool) -> dict[str, Any]:
+    # Reachability was reviewed for this application, not for arbitrary images
+    # that happen to contain the same Debian packages.
+    if not building:
+        raise AuditError(
+            "Application exceptions require a build from the reviewed checkout; "
+            "use an empty exception policy for --image"
+        )
+    review = read_json(policy.with_suffix(".review.json"))
+    if (
+        set(review) != {"schema_version", "reviewed_at", "inputs_sha256"}
+        or review["schema_version"] != 1
+        or date.fromisoformat(review["reviewed_at"]) > datetime.now(UTC).date()
+        or review["inputs_sha256"] != review_inputs()
+    ):
+        raise AuditError("Image exception review is stale; review changed inputs")
+    return review
+
+
+def verify_image_review(image_id: str, review: dict[str, Any]) -> dict[str, Any]:
+    evidence = json.loads(
+        run(
+            "docker",
+            "run",
+            "--rm",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges",
+            "--entrypoint",
+            "/app/.venv/bin/python",
+            image_id,
+            "-c",
+            REVIEW_PROBE,
+            capture=True,
+        )
+    )
+    if (
+        evidence
+        != {
+            "main_sha256": review["inputs_sha256"]["main.py"],
+            "uid": 65532,
+            "unexpected_tools": [],
+        }
+        or review["inputs_sha256"] != review_inputs()
+    ):
+        raise AuditError("Built image or checkout contradicts the exception review")
+    return {**review, "image_probe": evidence}
 
 
 def validate_inventory(
@@ -250,6 +331,14 @@ def render_report(report: dict[str, Any]) -> str:
     ]
     if not report["exceptions"]:
         lines += ["Винятків немає.", ""]
+    if report.get("exception_review"):
+        lines += [
+            "Винятки прив'язані до SHA-256 перевірених файлів у "
+            "`exception-review.json`. Образ перевірено: UID 65532, той самий "
+            "main.py, без infocmp/mount/nsenter. Це перевірка передумов "
+            "розбору, а не автоматичний доказ недосяжності всіх вразливих шляхів.",
+            "",
+        ]
     for e in report["exceptions"]:
         lines += [
             f"- {cell(e['vulnerability'])}, {cell(e['type'])}/{cell(e['package'])} "
@@ -346,6 +435,9 @@ def audit(image: str | None, output: Path, policy: Path) -> int:
     write_json(output / "report.json", report)
     try:
         exceptions = load_exceptions(policy)
+        review = (
+            load_image_review(policy, building=image is None) if exceptions else None
+        )
         write_json(
             output / "exceptions.json", {"schema_version": 1, "exceptions": exceptions}
         )
@@ -431,11 +523,19 @@ def audit(image: str | None, output: Path, policy: Path) -> int:
                     raise AuditError("Missing database timestamp timezone")
             if datetime.fromisoformat(database["NextUpdate"]) <= datetime.now(UTC):
                 raise AuditError("Vulnerability database is overdue for an update")
+            if review is not None:
+                report["exception_review"] = verify_image_review(image_id, review)
+                write_json(output / "exception-review.json", report["exception_review"])
             report.update(evaluate(scan, exceptions, datetime.now(UTC).date()))
             del report["error"]
         report["files_sha256"] = {
             name: hashlib.sha256((output / name).read_bytes()).hexdigest()
-            for name in ("trivy.json", "sbom.cdx.json", "exceptions.json")
+            for name in (
+                "trivy.json",
+                "sbom.cdx.json",
+                "exceptions.json",
+                *(["exception-review.json"] if review is not None else []),
+            )
         }
     except (
         AuditError,

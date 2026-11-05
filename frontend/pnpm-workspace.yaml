@@ -1,6 +1,8 @@
 # Hey API's parser pins an older js-yaml; use the fixes for GHSA-2883-xcg3-v3hh
 # and the related YAML CPU exhaustion advisories. Remove when upstream updates.
 overrides:
+  # GHSA-g3hv-75wg-m249: keep legacy v3 users, replace the affected v10 API.
+  'minimatch@>=10 <11': 11.0.1
   '@hey-api/json-schema-ref-parser>js-yaml': 4.3.2
   # markdownlint pins re2js 2.8.6; GHSA-gg6h-894w-4m9c is fixed in 2.8.7.
   'markdownlint>re2js': 2.8.7

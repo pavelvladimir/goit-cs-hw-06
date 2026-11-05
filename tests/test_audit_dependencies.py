@@ -1,5 +1,6 @@
 """Exercise complete inventories, published-file evidence, policy scopes and diffs."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -512,6 +513,19 @@ def test_image_comparison_supports_previous_reports_and_marks_platform_changes(
     changes = audit_diff.compare_runs(before, after, ["image"])
     assert changes["scopes"]["image"]["platform_changed"]
     assert "Платформа образу змінилася" in audit_diff.render_changes(changes)
+    evidence = after / "image/exception-review.json"
+    common.write_json(evidence, {"image_probe": {"uid": 65532}})
+    path = after / "image/report.json"
+    report = common.read_json(path)
+    report["exception_review"] = common.read_json(evidence)
+    report["files_sha256"][evidence.name] = hashlib.sha256(
+        evidence.read_bytes()
+    ).hexdigest()
+    common.write_json(path, report)
+    audit_diff.load_report(after, "image")
+    evidence.write_text("tampered review")
+    with pytest.raises(common.AuditError, match="Changed baseline artifact"):
+        audit_diff.load_report(after, "image")
 
 
 def test_checked_run_logs_errors(tmp_path: Path) -> None:

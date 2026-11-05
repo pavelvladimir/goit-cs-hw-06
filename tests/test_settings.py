@@ -73,6 +73,25 @@ def test_budgets(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(
+    "key,value",
+    [("MONGO_HOST", "localhost\x00.example"), ("MONGO_PORT", "27017\x00ignored")],
+)
+def test_nul_address_from_dotenv_never_reaches_mongo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, key: str, value: str
+) -> None:
+    # Unlike os.environ, .env can contain NUL: cover CVE-2026-116566's input path.
+    env = tmp_path / ".env"
+    env.write_text(f"{key}='{value}'\n")
+    monkeypatch.setattr(main, "ENV_FILE", env)
+    monkeypatch.delenv(key, raising=False)
+    client = MagicMock()
+    monkeypatch.setattr(main, "MongoClient", client)
+    with pytest.raises(main.ConfigurationError, match=key):
+        main.mongo_client()
+    client.assert_not_called()
+
+
+@pytest.mark.parametrize(
     "content", [b"", b" \n", b"two\nlines", b"null\x00byte", b"\xff"]
 )
 def test_invalid_secret(

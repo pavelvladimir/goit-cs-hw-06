@@ -17,7 +17,12 @@ def load_report(directory: Path, scope: str) -> tuple[dict[str, Any], set[str]]:
         raise common.AuditError(
             f"Cannot compare incomplete or mismatched {scope} report"
         )
-    for filename in ("sbom.cdx.json", "trivy.json", "exceptions.json"):
+    for filename in (
+        "sbom.cdx.json",
+        "trivy.json",
+        "exceptions.json",
+        *(["exception-review.json"] if report.get("exception_review") else []),
+    ):
         actual = hashlib.sha256((directory / scope / filename).read_bytes()).hexdigest()
         if actual != report["files_sha256"][filename]:
             raise common.AuditError(f"Changed baseline artifact: {scope}/{filename}")

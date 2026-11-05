@@ -281,6 +281,15 @@ def test_audit_preserves_evidence_and_returns_distinct_exit_codes(
             "exceptions": [exception] if scenario == "excepted" else [],
         },
     )
+    for name in module.REVIEW_INPUTS:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_text(f"reviewed fixture: {name}")
+    review: dict[str, Any] = {
+        "schema_version": 1,
+        "reviewed_at": today.date().isoformat(),
+        "inputs_sha256": module.review_inputs(),
+    }
+    module.write_json(policy.with_suffix(".review.json"), review)
     if scenario == "clean":
         scan["Results"][0]["Vulnerabilities"] = []
     calls: list[tuple[str, ...]] = []
@@ -316,6 +325,22 @@ def test_audit_preserves_evidence_and_returns_distinct_exit_codes(
             assert command[-1] == IMAGE_ID
             Path(command[command.index("--output") + 1]).write_bytes(b"image archive")
         elif command[:2] == ("docker", "run"):
+            if "--entrypoint" in command:
+                assert IMAGE_ID in command
+                assert "--network=none" in command
+                assert "--read-only" in command
+                assert "--cap-drop=ALL" in command
+                return subprocess.CompletedProcess(
+                    command,
+                    0,
+                    stdout=json.dumps(
+                        {
+                            "main_sha256": review["inputs_sha256"]["main.py"],
+                            "uid": 65532,
+                            "unexpected_tools": [],
+                        }
+                    ),
+                )
             assert module.TRIVY_IMAGE in command
             assert not any("docker.sock" in arg for arg in command)
             work = Path(command[command.index("--volume") + 1].removesuffix(":/work"))
@@ -391,6 +416,66 @@ def test_cli_refuses_existing_output(
 ) -> None:
     monkeypatch.setattr(sys, "argv", ["audit_image", "--output", str(tmp_path)])
     assert module.main() == 2
+
+
+@pytest.mark.parametrize(
+    "change", ["none", *sorted(module.REVIEW_INPUTS), "schema", "future", "external"]
+)
+def test_application_exceptions_require_the_reviewed_build_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    for name in module.REVIEW_INPUTS:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_text("reviewed")
+    review = {
+        "schema_version": 1,
+        "reviewed_at": "2026-11-05",
+        "inputs_sha256": module.review_inputs(),
+    }
+    if change in module.REVIEW_INPUTS:
+        (tmp_path / change).write_text("unreviewed")
+    elif change == "schema":
+        review["schema_version"] = 2
+    elif change == "future":
+        review["reviewed_at"] = "9999-01-01"
+    policy = tmp_path / "exceptions.json"
+    module.write_json(policy.with_suffix(".review.json"), review)
+    if change == "none":
+        assert module.load_image_review(policy, building=True) == review
+    else:
+        with pytest.raises(module.AuditError):
+            module.load_image_review(policy, building=change != "external")
+
+
+@pytest.mark.parametrize("change", ["none", "main", "uid", "tool", "checkout"])
+def test_review_checks_the_built_image_and_detects_changes_during_audit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    for name in module.REVIEW_INPUTS:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_text("reviewed")
+    review = {"inputs_sha256": module.review_inputs()}
+    evidence = {
+        "main_sha256": review["inputs_sha256"]["main.py"],
+        "uid": 65532,
+        "unexpected_tools": [],
+    }
+    if change == "main":
+        evidence["main_sha256"] = "different"
+    elif change == "uid":
+        evidence["uid"] = 0
+    elif change == "tool":
+        evidence["unexpected_tools"] = ["/usr/bin/mount"]
+    elif change == "checkout":
+        (tmp_path / "uv.lock").write_text("changed during scan")
+    monkeypatch.setattr(module, "run", lambda *a, **kw: json.dumps(evidence))
+    if change == "none":
+        assert module.verify_image_review(IMAGE_ID, review)["image_probe"] == evidence
+    else:
+        with pytest.raises(module.AuditError, match="contradicts"):
+            module.verify_image_review(IMAGE_ID, review)
 
 
 def test_cli_defaults_and_markdown_escaping(
